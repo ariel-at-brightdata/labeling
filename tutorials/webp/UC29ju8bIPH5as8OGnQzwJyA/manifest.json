@@ -1,0 +1,50 @@
+[
+  {
+    "videoId": "aVvRELbjcNU",
+    "title": "Traditional Coding vs Agentic Coding: The Flow State Problem",
+    "webp": "https://i.ytimg.com/an_webp/aVvRELbjcNU/mqdefault_6s.webp?du=3000&sqp=CKipkdUG&rs=AOn4CLDxQg2bGLDOdj0BtBNNsHZhL-7xaQ",
+    "position": 1,
+    "file": "01_p01_aVvRELbjcNU_Traditional_Coding_vs_Agentic_Coding_The_Flow_Stat.webp",
+    "bytes": 147888
+  },
+  {
+    "videoId": "gIUAY2lXnBw",
+    "title": "My biggest announcement ever",
+    "webp": "https://i.ytimg.com/an_webp/gIUAY2lXnBw/mqdefault_6s.webp?du=3000&sqp=CND2kNUG&rs=AOn4CLBV8VcHYhgAtBiP7iHqbvYVy1H1kA",
+    "position": 5,
+    "file": "02_p05_gIUAY2lXnBw_My_biggest_announcement_ever.webp",
+    "bytes": 145586
+  },
+  {
+    "videoId": "S5xNFmAR2xk",
+    "title": "I Was Starting To Forget...",
+    "webp": "https://i.ytimg.com/an_webp/S5xNFmAR2xk/mqdefault_6s.webp?du=3000&sqp=CKSTkdUG&rs=AOn4CLDuGUlt9UXX5xcxFY-l1jo51rNTCg",
+    "position": 9,
+    "file": "03_p09_S5xNFmAR2xk_I_Was_Starting_To_Forget.webp",
+    "bytes": 150442
+  },
+  {
+    "videoId": "jcBzuuZvLCE",
+    "title": "Learn Tanstack Start in 30 Minutes",
+    "webp": "https://i.ytimg.com/an_webp/jcBzuuZvLCE/mqdefault_6s.webp?du=3000&sqp=CKGikdUG&rs=AOn4CLAK-eFDR6LongRvGPeBWUfDJlHbtQ",
+    "position": 13,
+    "file": "04_p13_jcBzuuZvLCE_Learn_Tanstack_Start_in_30_Minutes.webp",
+    "bytes": 147568
+  },
+  {
+    "videoId": "ChaQ_tZDBFg",
+    "title": "You Can Build The Craziest Things with Claudes Agent SDK",
+    "webp": "https://i.ytimg.com/an_webp/ChaQ_tZDBFg/mqdefault_6s.webp?du=3000&sqp=CNCqkdUG&rs=AOn4CLC9U1HSYc_gT8WQj8I9TWEE4ibYSA",
+    "position": 17,
+    "file": "05_p17_ChaQ_tZDBFg_You_Can_Build_The_Craziest_Things_with_Claudes_Age.webp",
+    "bytes": 140972
+  },
+  {
+    "videoId": "8TMQcRcBnW8",
+    "title": "FastAPI Crash Course - Modern Python API Development",
+    "webp": "https://i.ytimg.com/an_webp/8TMQcRcBnW8/mqdefault_6s.webp?du=3000&sqp=CMuikdUG&rs=AOn4CLAGURXBo_0o-Cm0RVVHU2P2v9Z1ig",
+    "position": 21,
+    "file": "06_p21_8TMQcRcBnW8_FastAPI_Crash_Course_-_Modern_Python_API_Developme.webp",
+    "bytes": 150016
+  }
+]
