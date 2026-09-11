@@ -21,6 +21,8 @@ Flags:
 | `--parallel=N` | `1` | channels processed concurrently |
 | `--limit=N` | `6` | clips per channel |
 | `--out=DIR` | list name | override the output directory |
+| `--upload=true` | off | commit the run and push it to GitHub |
+| `--repo=URL` | existing `origin` | set the remote (only needed once) |
 
 ## Input
 
@@ -51,6 +53,27 @@ never overwrite each other:
 Files are named by the canonical `UC…` channel ID, whatever form the input
 took. Clip filenames record the page position they were sampled from
 (`01_p01_…`, `02_p05_…`).
+
+## Uploading
+
+`--upload=true` commits everything in the working tree and pushes it to
+`origin`. The first time, point it at the repository:
+
+```bash
+node yt-previews.js --file=hands1 --parallel=5 --upload=true \
+  --repo=https://github.com/<owner>/<repo>.git
+```
+
+After that `--upload=true` is enough — the remote is remembered in
+`.git/config`. It initialises the repository if there is not one yet, and if
+the remote has moved on it rebases onto it rather than failing or clobbering.
+A failed upload never discards the run: the clips and report are already on
+disk, the commit is made locally, and the next successful push carries it.
+
+Authentication is whatever git already has — `gh auth login`, an SSH key, or
+`GITHUB_TOKEN` in the environment (sent as a one-off header, never written to
+`.git/config` or into a commit). Terminal prompts are disabled, so a missing
+credential fails immediately with instructions instead of hanging.
 
 ## How it works
 

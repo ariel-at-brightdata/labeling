@@ -288,6 +288,113 @@ async function pool(items, concurrency, worker, onDone) {
   await Promise.all(runners);
 }
 
+// ------------------------------------------------------------------ uploading
+
+// Every git call runs with terminal prompts disabled: without a credential
+// helper, git would otherwise block forever waiting for a username that no one
+// is there to type.
+function git(args, cwd = '.') {
+  return new Promise((resolve) => {
+    const p = spawn('git', args, {
+      cwd,
+      stdio: ['ignore', 'pipe', 'pipe'],
+      env: { ...process.env, GIT_TERMINAL_PROMPT: '0', GIT_ASKPASS: 'echo' },
+    });
+    let out = '';
+    p.stdout.on('data', (d) => (out += d));
+    p.stderr.on('data', (d) => (out += d));
+    p.on('error', (e) => resolve({ code: 127, out: e.message }));
+    p.on('close', (code) => resolve({ code, out: out.trim() }));
+  });
+}
+
+const AUTH_HELP = [
+  'no GitHub credentials on this machine. Set up one of:',
+  '  gh:  brew install gh && gh auth login',
+  '  ssh: ssh-keygen -t ed25519, add ~/.ssh/id_ed25519.pub to GitHub, then',
+  '       git remote set-url origin git@github.com:<owner>/<repo>.git',
+  '  token: export GITHUB_TOKEN=... (used automatically for https remotes)',
+].join('\n  ');
+
+// Push the run to GitHub. Returns a short status string for the report.
+async function upload(outDir, repoUrl, summary) {
+  console.log('\n== uploading to GitHub');
+
+  let root = await git(['rev-parse', '--show-toplevel']);
+  if (root.code !== 0) {
+    if (!repoUrl) {
+      throw new Error('not a git repository -- pass --repo=https://github.com/<owner>/<repo>.git');
+    }
+    console.log('  initialising repository');
+    await git(['init', '-b', 'main']);
+  }
+
+  // Identity only if the repo does not already have one.
+  if ((await git(['config', 'user.email'])).code !== 0) {
+    await git(['config', 'user.email', 'noreply@users.noreply.github.com']);
+    await git(['config', 'user.name', 'yt-previews']);
+  }
+
+  const remote = await git(['remote', 'get-url', 'origin']);
+  if (remote.code !== 0) {
+    if (!repoUrl) throw new Error('no origin remote -- pass --repo=<url> once to set it');
+    await git(['remote', 'add', 'origin', repoUrl]);
+    console.log(`  origin set to ${repoUrl}`);
+  } else if (repoUrl && remote.out !== repoUrl) {
+    await git(['remote', 'set-url', 'origin', repoUrl]);
+    console.log(`  origin changed to ${repoUrl}`);
+  }
+
+  // A token in the environment is used for this push only -- it is passed via
+  // an ephemeral header, never written into .git/config or any commit.
+  const url = (await git(['remote', 'get-url', 'origin'])).out;
+  const tokenArgs = [];
+  if (process.env.GITHUB_TOKEN && url.startsWith('https://')) {
+    const basic = Buffer.from(`x-access-token:${process.env.GITHUB_TOKEN}`).toString('base64');
+    tokenArgs.push('-c', `http.extraheader=Authorization: Basic ${basic}`);
+  }
+
+  await git(['add', '-A']);
+  const pending = await git(['status', '--porcelain']);
+  if (!pending.out) {
+    console.log('  nothing changed since the last upload');
+    return 'nothing to push';
+  }
+
+  const built = summary.filter((r) => r.clips > 0).length;
+  const files = pending.out.split('\n').length;
+  const msg = `${outDir}: ${built} channel(s), ${files} file(s) changed`;
+  const commit = await git(['commit', '-m', msg]);
+  if (commit.code !== 0) throw new Error(`commit failed: ${commit.out}`);
+  console.log(`  committed: ${msg}`);
+
+  const branch = (await git(['rev-parse', '--abbrev-ref', 'HEAD'])).out || 'main';
+
+  // If the remote moved on (another machine, an edit in the web UI), rebase
+  // onto it rather than failing the push.
+  const fetched = await git([...tokenArgs, 'fetch', 'origin', branch]);
+  if (fetched.code === 0) {
+    const behind = await git(['rev-list', '--count', `HEAD..origin/${branch}`]);
+    if (behind.code === 0 && Number(behind.out) > 0) {
+      console.log(`  remote is ${behind.out} commit(s) ahead -- rebasing`);
+      const rb = await git(['pull', '--rebase', 'origin', branch]);
+      if (rb.code !== 0) throw new Error(`rebase failed, resolve by hand: ${rb.out}`);
+    }
+  }
+
+  console.log('  pushing...');
+  const push = await git([...tokenArgs, 'push', '-u', 'origin', branch]);
+  if (push.code !== 0) {
+    const denied = /could not read Username|Authentication failed|Permission denied|403/i
+      .test(push.out);
+    throw new Error(denied ? `${AUTH_HELP}\n\n  git said: ${push.out.split('\n')[0]}`
+                           : `push failed: ${push.out}`);
+  }
+  const webUrl = url.replace(/^git@github\.com:/, 'https://github.com/').replace(/\.git$/, '');
+  console.log(`  pushed to ${webUrl}`);
+  return `pushed to ${webUrl} (${msg})`;
+}
+
 // ----------------------------------------------------------------------- main
 
 async function main() {
@@ -297,13 +404,17 @@ async function main() {
   let listFile = null;
   let outDir = null;
   let parallel = 1;
+  let doUpload = false;
+  let repoUrl = null;
   for (let i = 0; i < argv.length; i++) {
-    const eq = argv[i].match(/^--(file|limit|out|parallel)=(.*)$/);
+    const eq = argv[i].match(/^--(file|limit|out|parallel|upload|repo)=(.*)$/);
     const [flag, value] = eq ? [eq[1], eq[2]] : [argv[i].replace(/^--/, ''), null];
     if (flag === 'file') listFile = value ?? argv[++i];
     else if (flag === 'limit') limit = Number(value ?? argv[++i]);
     else if (flag === 'out') outDir = value ?? argv[++i];
     else if (flag === 'parallel') parallel = Math.max(1, Number(value ?? argv[++i]) || 1);
+    else if (flag === 'upload') doUpload = value === null ? true : !/^(false|0|no)$/i.test(value);
+    else if (flag === 'repo') repoUrl = value ?? argv[++i];
     else urls.push(argv[i]);
   }
 
@@ -449,5 +560,17 @@ async function main() {
   await fs.writeFile(reportPath, text);
   console.log('\n' + text);
   console.log(`report written to ${reportPath}`);
+
+  if (doUpload) {
+    try {
+      const status = await upload(outDir, repoUrl, summary);
+      await fs.appendFile(reportPath, `\nupload: ${status}\n`);
+    } catch (err) {
+      // The run itself succeeded; a failed upload must not discard it.
+      console.error(`\n  ! upload failed: ${err.message}`);
+      await fs.appendFile(reportPath, `\nupload: FAILED -- ${err.message}\n`);
+      process.exitCode = 1;
+    }
+  }
 }
 main().catch((err) => { console.error(err.message); process.exit(1); });
