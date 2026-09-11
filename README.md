@@ -1,0 +1,76 @@
+# labeling
+
+Downloads YouTube hover-preview animations (the short `.webp` loops that play
+when you hover a video thumbnail) for a list of channels, and stitches six of
+them per channel into a single MP4 with numbered title cards.
+
+## Usage
+
+```bash
+node yt-previews.js                          # reads ./channels.txt
+node yt-previews.js --file="talking heads"   # reads that list (.txt optional)
+node yt-previews.js --file=hands1 --parallel=5
+node yt-previews.js https://www.youtube.com/@handle   # ad-hoc, no list file
+```
+
+Flags:
+
+| flag | default | meaning |
+| --- | --- | --- |
+| `--file=NAME` | `channels.txt` | channel list to read; `.txt` optional |
+| `--parallel=N` | `1` | channels processed concurrently |
+| `--limit=N` | `6` | clips per channel |
+| `--out=DIR` | list name | override the output directory |
+
+## Input
+
+One channel per line. Raw IDs, full URLs and `@handles` are all accepted, and
+may be mixed. A header row (e.g. `CHANNEL_URL`), blank lines and `#` comments
+are skipped.
+
+```
+CHANNEL_URL
+https://www.youtube.com/channel/UC-No2ITxJsNt50oJQ3fLmUA
+UC0HOUqH0Sb9pYcxOWxdh6-w
+@somehandle
+```
+
+## Output
+
+Each list gets its own directory, named after the list file, so separate runs
+never overwrite each other:
+
+```
+<list name>/
+  <list name>.txt          copy of the input list used for the run
+  report.txt               which channels had previews and which did not
+  mp4/<channelId>.mp4      one video per channel
+  webp/<channelId>/        the source clips + manifest.json
+```
+
+Files are named by the canonical `UC…` channel ID, whatever form the input
+took. Clip filenames record the page position they were sampled from
+(`01_p01_…`, `02_p05_…`).
+
+## How it works
+
+Preview URLs are signed by YouTube (`sqp` / `rs` query params) — an unsigned
+`i.ytimg.com/an_webp/<id>/mqdefault_6s.webp` returns 404, so they cannot be
+constructed from a video ID. They are read out of the channel page's
+`ytInitialData`. Only the initial HTML render of the `/videos` tab carries
+them: the InnerTube `browse` API and scroll continuations return none.
+
+Videos are sampled every 4th position on the page (`#1 #5 #9 #13 #17 #21`). If
+a sampled slot has no preview, the next previewed video is used instead.
+
+Not every channel exposes previews, and coverage varies widely — some channels
+have 30 of 30, others 6 of 30, some none at all. A channel with none is
+recorded in `report.txt` and skipped rather than failing the run. YouTube also
+intermittently serves a page variant with no previews at all, so an empty or
+unparseable response is retried before the channel is written off.
+
+## Requirements
+
+Node (no npm packages) and ffmpeg 7.1+ / ffprobe — 7.1 is where ffmpeg gained
+its native animated-WebP decoder; older builds silently see only the first
+frame.

@@ -1,0 +1,53 @@
+YouTube preview run -- 2026-09-11T15:05:21.860Z
+list: hands1.txt
+output directory: hands1/
+channels processed: 20
+  with previews:    20
+  without previews: 0
+sampling: every 4th video on the page, up to 6 clips
+parallelism: 1 channel(s) at a time
+
+== CHANNELS WITH PREVIEWS ==
+UC-FgFTUoZ0aGeKSL1pKjg4w  clips=6  previews=30/30  -> hands1/mp4/UC-FgFTUoZ0aGeKSL1pKjg4w.mp4 (1.5 MB)
+    source: https://www.youtube.com/channel/UC-FgFTUoZ0aGeKSL1pKjg4w
+UC-OTf-8FcfNUqSS4vtVpo5g  clips=6  previews=27/30  -> hands1/mp4/UC-OTf-8FcfNUqSS4vtVpo5g.mp4 (1.3 MB)
+    source: https://www.youtube.com/channel/UC-OTf-8FcfNUqSS4vtVpo5g
+UC-YydVLPmxOZN0mfWAxG8ug  clips=6  previews=30/30  -> hands1/mp4/UC-YydVLPmxOZN0mfWAxG8ug.mp4 (1.9 MB)
+    source: https://www.youtube.com/channel/UC-YydVLPmxOZN0mfWAxG8ug
+UC-Z8J3xR9wLC-rCwkVMiatA  clips=6  previews=30/30  -> hands1/mp4/UC-Z8J3xR9wLC-rCwkVMiatA.mp4 (1.9 MB)
+    source: https://www.youtube.com/channel/UC-Z8J3xR9wLC-rCwkVMiatA
+UC-ihOfZj4JQmEFPF1ATwo-Q  clips=6  previews=28/30  -> hands1/mp4/UC-ihOfZj4JQmEFPF1ATwo-Q.mp4 (1.3 MB)
+    source: https://www.youtube.com/channel/UC-ihOfZj4JQmEFPF1ATwo-Q
+UC-jxbRDq0TMVSuPvgZGNCZw  clips=6  previews=29/30  -> hands1/mp4/UC-jxbRDq0TMVSuPvgZGNCZw.mp4 (2.2 MB)
+    source: https://www.youtube.com/channel/UC-jxbRDq0TMVSuPvgZGNCZw
+UC0FpVnxduNcMgnGO2NvG0kw  clips=6  previews=30/30  -> hands1/mp4/UC0FpVnxduNcMgnGO2NvG0kw.mp4 (2.4 MB)
+    source: https://www.youtube.com/channel/UC0FpVnxduNcMgnGO2NvG0kw
+UC0I2N1lhmvCzT_VUEMJBhag  clips=6  previews=30/30  -> hands1/mp4/UC0I2N1lhmvCzT_VUEMJBhag.mp4 (1.5 MB)
+    source: https://www.youtube.com/channel/UC0I2N1lhmvCzT_VUEMJBhag
+UC0Le_ilaOlp9HftXeiMglsg  clips=6  previews=29/30  -> hands1/mp4/UC0Le_ilaOlp9HftXeiMglsg.mp4 (1.9 MB)
+    source: https://www.youtube.com/channel/UC0Le_ilaOlp9HftXeiMglsg
+UC0iMm4rN6mA0rGlZIYJBmag  clips=6  previews=30/30  -> hands1/mp4/UC0iMm4rN6mA0rGlZIYJBmag.mp4 (2.1 MB)
+    source: https://www.youtube.com/channel/UC0iMm4rN6mA0rGlZIYJBmag
+UC0jlpmVEbw8kcvrJ-oEUuig  clips=6  previews=30/30  -> hands1/mp4/UC0jlpmVEbw8kcvrJ-oEUuig.mp4 (1.7 MB)
+    source: https://www.youtube.com/channel/UC0jlpmVEbw8kcvrJ-oEUuig
+UC1GRoU4-DQYWdHhI2f5WOBg  clips=6  previews=30/30  -> hands1/mp4/UC1GRoU4-DQYWdHhI2f5WOBg.mp4 (1.6 MB)
+    source: https://www.youtube.com/channel/UC1GRoU4-DQYWdHhI2f5WOBg
+UC1Y0bN3e_6wHg0xEjdam_5w  clips=6  previews=21/30  -> hands1/mp4/UC1Y0bN3e_6wHg0xEjdam_5w.mp4 (0.9 MB)
+    source: https://www.youtube.com/channel/UC1Y0bN3e_6wHg0xEjdam_5w
+UC1_7-xu4sWXN8CKRDm75P-g  clips=6  previews=25/30  -> hands1/mp4/UC1_7-xu4sWXN8CKRDm75P-g.mp4 (2.2 MB)
+    source: https://www.youtube.com/channel/UC1_7-xu4sWXN8CKRDm75P-g
+UC1zBNEv_qDIhbcJsE1Mn-Gw  clips=6  previews=30/30  -> hands1/mp4/UC1zBNEv_qDIhbcJsE1Mn-Gw.mp4 (2.0 MB)
+    source: https://www.youtube.com/channel/UC1zBNEv_qDIhbcJsE1Mn-Gw
+UC24pbFVPIR2BdVdSPOfl21Q  clips=6  previews=30/30  -> hands1/mp4/UC24pbFVPIR2BdVdSPOfl21Q.mp4 (1.3 MB)
+    source: https://www.youtube.com/channel/UC24pbFVPIR2BdVdSPOfl21Q
+UC3Bm5DbD6cusrt2KdfFDk9g  clips=6  previews=28/30  -> hands1/mp4/UC3Bm5DbD6cusrt2KdfFDk9g.mp4 (1.2 MB)
+    source: https://www.youtube.com/channel/UC3Bm5DbD6cusrt2KdfFDk9g
+UC3GWr1dRAjxmQK3ECj3ybrg  clips=6  previews=25/30  -> hands1/mp4/UC3GWr1dRAjxmQK3ECj3ybrg.mp4 (1.9 MB)
+    source: https://www.youtube.com/channel/UC3GWr1dRAjxmQK3ECj3ybrg
+UC3NyoC4_vQfAzCKEEs-xAkw  clips=6  previews=29/30  -> hands1/mp4/UC3NyoC4_vQfAzCKEEs-xAkw.mp4 (2.1 MB)
+    source: https://www.youtube.com/channel/UC3NyoC4_vQfAzCKEEs-xAkw
+UC3UfUd13y_yXrOyL3FcdBzg  clips=6  previews=16/30  -> hands1/mp4/UC3UfUd13y_yXrOyL3FcdBzg.mp4 (3.1 MB)
+    source: https://www.youtube.com/channel/UC3UfUd13y_yXrOyL3FcdBzg
+
+== CHANNELS WITHOUT PREVIEWS (no mp4) ==
+  (none)

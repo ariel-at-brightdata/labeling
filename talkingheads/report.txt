@@ -1,0 +1,52 @@
+YouTube preview run -- 2026-09-11T14:59:12.042Z
+list: talkingheads.txt
+output directory: talkingheads/
+channels processed: 20
+  with previews:    20
+  without previews: 0
+sampling: every 4th video on the page, up to 6 clips
+
+== CHANNELS WITH PREVIEWS ==
+UC-No2ITxJsNt50oJQ3fLmUA  clips=6  previews=30/30  -> talkingheads/mp4/UC-No2ITxJsNt50oJQ3fLmUA.mp4 (1.8 MB)
+    source: https://www.youtube.com/channel/UC-No2ITxJsNt50oJQ3fLmUA
+UC-_AkLn4A5iBr6BXN6waR_Q  clips=6  previews=30/30  -> talkingheads/mp4/UC-_AkLn4A5iBr6BXN6waR_Q.mp4 (1.4 MB)
+    source: https://www.youtube.com/channel/UC-_AkLn4A5iBr6BXN6waR_Q
+UC-s_s0Fznhv4mTss0YKmY4A  clips=6  previews=30/30  -> talkingheads/mp4/UC-s_s0Fznhv4mTss0YKmY4A.mp4 (1.2 MB)
+    source: https://www.youtube.com/channel/UC-s_s0Fznhv4mTss0YKmY4A
+UC0A-v_DL-h76F75xik8h03Q  clips=6  previews=16/30  -> talkingheads/mp4/UC0A-v_DL-h76F75xik8h03Q.mp4 (1.3 MB)
+    source: https://www.youtube.com/channel/UC0A-v_DL-h76F75xik8h03Q
+UC0HOUqH0Sb9pYcxOWxdh6-w  clips=6  previews=30/30  -> talkingheads/mp4/UC0HOUqH0Sb9pYcxOWxdh6-w.mp4 (1.6 MB)
+    source: https://www.youtube.com/channel/UC0HOUqH0Sb9pYcxOWxdh6-w
+UC0vb6cusSy2slVxGkyBiiRQ  clips=6  previews=15/15  -> talkingheads/mp4/UC0vb6cusSy2slVxGkyBiiRQ.mp4 (1.4 MB)
+    source: https://www.youtube.com/channel/UC0vb6cusSy2slVxGkyBiiRQ
+UC1N15bwJCPFHjEsun1epfmw  clips=6  previews=30/30  -> talkingheads/mp4/UC1N15bwJCPFHjEsun1epfmw.mp4 (1.4 MB)
+    source: https://www.youtube.com/channel/UC1N15bwJCPFHjEsun1epfmw
+UC1u8vBk71yQg-Pa3wSQMk9Q  clips=6  previews=29/30  -> talkingheads/mp4/UC1u8vBk71yQg-Pa3wSQMk9Q.mp4 (0.8 MB)
+    source: https://www.youtube.com/channel/UC1u8vBk71yQg-Pa3wSQMk9Q
+UC1yBKRuGpC1tSM73A0ZjYjQ  clips=6  previews=18/30  -> talkingheads/mp4/UC1yBKRuGpC1tSM73A0ZjYjQ.mp4 (1.4 MB)
+    source: https://www.youtube.com/channel/UC1yBKRuGpC1tSM73A0ZjYjQ
+UC2_MzrhoiYv2qXVzZoTQC9A  clips=2  previews=2/2  -> talkingheads/mp4/UC2_MzrhoiYv2qXVzZoTQC9A.mp4 (0.5 MB)
+    source: https://www.youtube.com/channel/UC2_MzrhoiYv2qXVzZoTQC9A
+UC2kMTY7QDxX98YVZdr32uCA  clips=6  previews=30/30  -> talkingheads/mp4/UC2kMTY7QDxX98YVZdr32uCA.mp4 (1.3 MB)
+    source: https://www.youtube.com/channel/UC2kMTY7QDxX98YVZdr32uCA
+UC2ozVs4pg2K3uFLw6-0ayCQ  clips=6  previews=30/30  -> talkingheads/mp4/UC2ozVs4pg2K3uFLw6-0ayCQ.mp4 (1.7 MB)
+    source: https://www.youtube.com/channel/UC2ozVs4pg2K3uFLw6-0ayCQ
+UC38bNJV-Z15_bObHOwCiPSA  clips=6  previews=30/30  -> talkingheads/mp4/UC38bNJV-Z15_bObHOwCiPSA.mp4 (1.6 MB)
+    source: https://www.youtube.com/channel/UC38bNJV-Z15_bObHOwCiPSA
+UC4fZeoNxAXfbIpT3swsVh9w  clips=6  previews=30/30  -> talkingheads/mp4/UC4fZeoNxAXfbIpT3swsVh9w.mp4 (1.4 MB)
+    source: https://www.youtube.com/channel/UC4fZeoNxAXfbIpT3swsVh9w
+UC4m46pCBkMEyy8gk26WKqbA  clips=6  previews=28/30  -> talkingheads/mp4/UC4m46pCBkMEyy8gk26WKqbA.mp4 (2.1 MB)
+    source: https://www.youtube.com/channel/UC4m46pCBkMEyy8gk26WKqbA
+UC5-ccSKgOpdTBOoya5Bcj_g  clips=6  previews=21/21  -> talkingheads/mp4/UC5-ccSKgOpdTBOoya5Bcj_g.mp4 (1.5 MB)
+    source: https://www.youtube.com/channel/UC5-ccSKgOpdTBOoya5Bcj_g
+UC58be4F7JgeyHXLEyp5aTdA  clips=6  previews=30/30  -> talkingheads/mp4/UC58be4F7JgeyHXLEyp5aTdA.mp4 (1.3 MB)
+    source: https://www.youtube.com/channel/UC58be4F7JgeyHXLEyp5aTdA
+UC5Gb9pWYSfcpEdTb6vf9Dbg  clips=6  previews=30/30  -> talkingheads/mp4/UC5Gb9pWYSfcpEdTb6vf9Dbg.mp4 (1.7 MB)
+    source: https://www.youtube.com/channel/UC5Gb9pWYSfcpEdTb6vf9Dbg
+UC5PstSsGrRwj2o6asQpC4Rg  clips=6  previews=30/30  -> talkingheads/mp4/UC5PstSsGrRwj2o6asQpC4Rg.mp4 (1.6 MB)
+    source: https://www.youtube.com/channel/UC5PstSsGrRwj2o6asQpC4Rg
+UC5g5h1SlrrST9y6q-aEBJHg  clips=6  previews=30/30  -> talkingheads/mp4/UC5g5h1SlrrST9y6q-aEBJHg.mp4 (1.4 MB)
+    source: https://www.youtube.com/channel/UC5g5h1SlrrST9y6q-aEBJHg
+
+== CHANNELS WITHOUT PREVIEWS (no mp4) ==
+  (none)
