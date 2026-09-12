@@ -816,6 +816,9 @@ INPUT
   filters which channels run.
 
 OPTIONS
+  Hyphens and underscores are interchangeable: --min-score and --min_score
+  both work. An unrecognised --flag is an error, not a channel name.
+
   --file=NAME        list to read; the .txt/.csv extension is optional
   --limit=N          clips per channel (default ${PER_CHANNEL})
   --min_score=N      for scored CSVs, skip channels below N (default ${MIN_SCORE})
@@ -873,11 +876,14 @@ NOTES
 
 async function main() {
   const argv = process.argv.slice(2);
-  if (argv.includes('--help') || argv.includes('-h')) {
+  const asked = (name) => argv.some((a) =>
+    a.replace(/-/g, '_').toLowerCase() === `__${name}`);
+
+  if (asked('help') || argv.includes('-h')) {
     console.log(HELP);
     return;
   }
-  if (argv.includes('--csv-only')) {
+  if (asked('csv_only')) {
     await rebuildAllCsvs();
     return;
   }
@@ -891,18 +897,42 @@ async function main() {
   const scoreByRaw = new Map();   // input line -> score, for mp4 filenames
   let minScore = MIN_SCORE;
   let wantCsv = true;
+  const KNOWN = ['file', 'limit', 'out', 'parallel', 'upload', 'repo',
+                 'min_score', 'csv', 'csv_only', 'help'];
+  const die = (msg) => { console.error(msg); process.exit(1); };
+  const num = (raw, flag) => {
+    const n = Number(raw);
+    if (!Number.isFinite(n)) die(`--${flag} needs a number, got "${raw}"`);
+    return n;
+  };
+
   for (let i = 0; i < argv.length; i++) {
-    const eq = argv[i].match(/^--(file|limit|out|parallel|upload|repo|min_score|csv)=(.*)$/);
-    const [flag, value] = eq ? [eq[1], eq[2]] : [argv[i].replace(/^--/, ''), null];
+    const a = argv[i];
+    if (!a.startsWith('--')) { urls.push(a); continue; }
+
+    const m = a.match(/^--([A-Za-z][\w-]*)(?:=([\s\S]*))?$/);
+    if (!m) die(`unrecognised argument: ${a}\nrun with --help for usage`);
+
+    // Hyphens and underscores are interchangeable, so --min-score and
+    // --min_score both work; an unknown flag is an error rather than being
+    // quietly taken for a channel name.
+    const flag = m[1].replace(/-/g, '_').toLowerCase();
+    const value = m[2] ?? null;
+
     if (flag === 'file') listFile = value ?? argv[++i];
-    else if (flag === 'limit') limit = Number(value ?? argv[++i]);
+    else if (flag === 'limit') limit = num(value ?? argv[++i], 'limit');
     else if (flag === 'out') outDir = value ?? argv[++i];
-    else if (flag === 'parallel') parallel = Math.max(1, Number(value ?? argv[++i]) || 1);
+    else if (flag === 'parallel') parallel = Math.max(1, num(value ?? argv[++i], 'parallel'));
     else if (flag === 'upload') doUpload = value === null ? true : !/^(false|0|no)$/i.test(value);
     else if (flag === 'repo') repoUrl = value ?? argv[++i];
-    else if (flag === 'min_score') minScore = Number(value ?? argv[++i]);
+    else if (flag === 'min_score') minScore = num(value ?? argv[++i], 'min_score');
     else if (flag === 'csv') wantCsv = !/^(false|0|no)$/i.test(value ?? 'true');
-    else urls.push(argv[i]);
+    else if (flag === 'csv_only' || flag === 'help') { /* handled before the loop */ }
+    else {
+      die(`unknown option --${m[1]}\n` +
+          `valid options: ${KNOWN.map((k) => '--' + k).join(', ')}\n` +
+          `run with --help for usage`);
+    }
   }
 
   // No URLs on the command line means: work through the channel list file.
