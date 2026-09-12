@@ -24,6 +24,9 @@ Flags:
 | `--upload=true` | off | commit the run and push it to GitHub |
 | `--repo=URL` | existing `origin` | set the remote (only needed once) |
 | `--min_score=N` | `5` | for scored CSV lists, skip channels below N |
+| `--csv=false` | on | skip writing the labelling CSV |
+| `--csv-only` | | rebuild every CSV from the mp4s on disk, then exit |
+| `--help` | | usage and worked examples |
 
 ## Input
 
@@ -101,6 +104,11 @@ unparseable response is retried before the channel is written off.
 
 ## Requirements
 
-Node (no npm packages) and ffmpeg 7.1+ / ffprobe — 7.1 is where ffmpeg gained
+`yt-previews.js` is self-contained: it needs node (no npm packages) and
+ffmpeg 7.1+ / ffprobe, nothing else. The animated-WebP conversion and the
+labelling-CSV generation are built in; `webp2mp4-purejs.js` remains only as a
+standalone converter and is no longer used by the pipeline.
+
+ffmpeg 7.1 is the version — 7.1 is where ffmpeg gained
 its native animated-WebP decoder; older builds silently see only the first
 frame.
