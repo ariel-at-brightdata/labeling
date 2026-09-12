@@ -15,7 +15,7 @@ const path = require('path');
 const zlib = require('zlib');
 const { spawn } = require('child_process');
 
-const SCALE = 1.5;            // upscale factor; set to 1 to keep original size
+const SCALE = 1;              // upscale factor; 1 keeps the original 320x180
 const CARD_SECONDS = 0.75;  // how long each "#n" card holds
 const FPS = 24;             // output frame rate
 const TEXT_HEIGHT = 0.34;   // cap height as a fraction of frame height

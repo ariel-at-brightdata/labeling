@@ -35,6 +35,7 @@ const UA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 '
 const PER_CHANNEL = 6;                 // clips per channel, per the spec
 const STRIDE = 4;                      // sample every 4th video: #1, #5, #9, ...
 const REPORT = 'report.txt';           // written at the end of every run
+const MIN_SCORE = 5;                   // default cutoff for scored CSV lists
 const CONVERTER = path.join(__dirname, 'webp2mp4-purejs.js');
 const DEFAULT_LIST = 'channels.txt';
 
@@ -80,6 +81,67 @@ function channelId(url, data) {
   if (external && UC_ID.test(external)) return external;
   const m = url.match(/\/channel\/(UC[\w-]+)/) || url.match(/\/@([\w.-]+)/);
   return (m ? m[1] : 'channel').replace(/\./g, '_');
+}
+
+// ------------------------------------------------------------------ list files
+
+// RFC 4180: fields may be quoted, and a quoted field may contain commas,
+// doubled quotes and newlines -- so the file cannot simply be split on \n.
+function parseCsv(text) {
+  const rows = [];
+  let row = [], field = '', quoted = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (quoted) {
+      if (c === '"') {
+        if (text[i + 1] === '"') { field += '"'; i++; } else quoted = false;
+      } else field += c;
+    } else if (c === '"') quoted = true;
+    else if (c === ',') { row.push(field); field = ''; }
+    else if (c === '\n') { row.push(field); rows.push(row); row = []; field = ''; }
+    else if (c !== '\r') field += c;
+  }
+  if (field || row.length) { row.push(field); rows.push(row); }
+  return rows;
+}
+
+// Accepted list formats: one channel per line, or a CSV carrying a channel_id
+// (or url/handle) column, optionally with a score column used in mp4 names.
+function readList(text, filename) {
+  text = text.replace(/^\uFEFF/, '');            // strip a spreadsheet BOM
+  const isCsv = /\.csv$/i.test(filename) ||
+                /(^|,)\s*(channel_id|url|handle)\s*(,|$)/i.test(text.split('\n')[0]);
+  if (!isCsv) {
+    const lines = text.split(/\r?\n/).map((l) => l.trim())
+                      .filter((l) => l && !l.startsWith('#'));
+    return {
+      entries: lines.filter(looksLikeChannel).map((raw) => ({ raw, score: '' })),
+      skipped: lines.filter((l) => !looksLikeChannel(l)),
+    };
+  }
+
+  const rows = parseCsv(text).filter((r) => r.some((c) => c.trim()));
+  const header = rows.shift().map((h) => h.trim().toLowerCase());
+  const col = (...names) => {
+    for (const n of names) {
+      const i = header.indexOf(n);
+      if (i !== -1) return i;
+    }
+    return -1;
+  };
+  const idCol = col('channel_id', 'channelid', 'url', 'handle');
+  const scoreCol = col('score_0_5', 'score');
+  if (idCol === -1) {
+    throw new Error(`${filename}: no channel_id, url or handle column found`);
+  }
+
+  const entries = [], skipped = [];
+  for (const r of rows) {
+    const raw = (r[idCol] || '').trim();
+    if (!looksLikeChannel(raw)) { if (raw) skipped.push(raw); continue; }
+    entries.push({ raw, score: scoreCol === -1 ? '' : (r[scoreCol] || '').trim() });
+  }
+  return { entries, skipped };
 }
 
 // ---------------------------------------------------------------- extraction
@@ -406,8 +468,10 @@ async function main() {
   let parallel = 1;
   let doUpload = false;
   let repoUrl = null;
+  const scoreByRaw = new Map();   // input line -> score, for mp4 filenames
+  let minScore = MIN_SCORE;
   for (let i = 0; i < argv.length; i++) {
-    const eq = argv[i].match(/^--(file|limit|out|parallel|upload|repo)=(.*)$/);
+    const eq = argv[i].match(/^--(file|limit|out|parallel|upload|repo|min_score)=(.*)$/);
     const [flag, value] = eq ? [eq[1], eq[2]] : [argv[i].replace(/^--/, ''), null];
     if (flag === 'file') listFile = value ?? argv[++i];
     else if (flag === 'limit') limit = Number(value ?? argv[++i]);
@@ -415,6 +479,7 @@ async function main() {
     else if (flag === 'parallel') parallel = Math.max(1, Number(value ?? argv[++i]) || 1);
     else if (flag === 'upload') doUpload = value === null ? true : !/^(false|0|no)$/i.test(value);
     else if (flag === 'repo') repoUrl = value ?? argv[++i];
+    else if (flag === 'min_score') minScore = Number(value ?? argv[++i]);
     else urls.push(argv[i]);
   }
 
@@ -422,7 +487,7 @@ async function main() {
   if (!urls.length && !listFile) listFile = DEFAULT_LIST;
   if (listFile) {
     let text;
-    const candidates = [listFile, `${listFile}.txt`];
+    const candidates = [listFile, `${listFile}.txt`, `${listFile}.csv`];
     for (const c of candidates) {
       try {
         text = await fs.readFile(c, 'utf8');
@@ -435,11 +500,24 @@ async function main() {
                     `per line in it, or pass URLs as arguments`);
       process.exit(1);
     }
-    const lines = text.split(/\r?\n/).map((l) => l.trim())
-                      .filter((l) => l && !l.startsWith('#'));
-    const skipped = lines.filter((l) => !looksLikeChannel(l));
-    urls.push(...lines.filter(looksLikeChannel));
-    for (const l of skipped) console.log(`  skipping non-channel line: ${l}`);
+    let parsed;
+    try {
+      parsed = readList(text, listFile);
+    } catch (err) {
+      console.error(err.message);
+      process.exit(1);
+    }
+    let belowCutoff = 0;
+    for (const e of parsed.entries) {
+      if (e.score !== '' && Number(e.score) < minScore) { belowCutoff++; continue; }
+      urls.push(e.raw);
+      if (e.score !== '') scoreByRaw.set(e.raw, e.score);
+    }
+    if (belowCutoff) {
+      console.log(`  ${belowCutoff} channel(s) below --min_score=${minScore}, skipped`);
+    }
+    for (const l of parsed.skipped) console.log(`  skipping non-channel line: ${l}`);
+    if (scoreByRaw.size) console.log(`  ${scoreByRaw.size} channel(s) carry a score`);
     if (!urls.length) {
       console.error(`${listFile} has no channel URLs in it`);
       process.exit(1);
@@ -493,7 +571,9 @@ async function main() {
       if (files.length < limit) log(`  note: only ${files.length} of ${limit} clips available`);
 
       await fs.mkdir(path.join(outDir, 'mp4'), { recursive: true });
-      const out = path.join(outDir, 'mp4', `${id}.mp4`);
+      const score = scoreByRaw.get(raw.trim());
+      const base = score ? `${id}-score-${score}` : id;
+      const out = path.join(outDir, 'mp4', `${base}.mp4`);
       await runNode([CONVERTER, out, ...files], log);
       const { size } = await fs.stat(out);
       return { lines, entry: { id, source: raw.trim(), videos: rows.length, avail,
@@ -532,6 +612,7 @@ async function main() {
   if (failed.length) L.push(`  errored:          ${failed.length}`);
   L.push(`sampling: every ${STRIDE}th video on the page, up to ${limit} clips`);
   L.push(`parallelism: ${parallel} channel(s) at a time`);
+  if (scoreByRaw.size) L.push(`min score: ${minScore}`);
   L.push('');
 
   L.push('== CHANNELS WITH PREVIEWS ==');

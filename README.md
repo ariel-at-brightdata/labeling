@@ -23,12 +23,13 @@ Flags:
 | `--out=DIR` | list name | override the output directory |
 | `--upload=true` | off | commit the run and push it to GitHub |
 | `--repo=URL` | existing `origin` | set the remote (only needed once) |
+| `--min_score=N` | `5` | for scored CSV lists, skip channels below N |
 
 ## Input
 
-One channel per line. Raw IDs, full URLs and `@handles` are all accepted, and
-may be mixed. A header row (e.g. `CHANNEL_URL`), blank lines and `#` comments
-are skipped.
+A `.txt` with one channel per line, or a `.csv`. Raw IDs, full URLs and
+`@handles` are all accepted, and may be mixed. A header row (e.g.
+`CHANNEL_URL`), blank lines and `#` comments are skipped.
 
 ```
 CHANNEL_URL
@@ -36,6 +37,12 @@ https://www.youtube.com/channel/UC-No2ITxJsNt50oJQ3fLmUA
 UC0HOUqH0Sb9pYcxOWxdh6-w
 @somehandle
 ```
+
+A CSV list is read from its `channel_id` column (falling back to `url` or
+`handle`), quoted fields and a spreadsheet BOM included. If it also has a
+`score_0_5` column, the score is appended to the MP4 filename
+(`<channelId>-score-<n>.mp4`) and `--min_score` filters the run — the default
+of 5 keeps only top-scored channels. Lists without scores ignore the cutoff.
 
 ## Output
 
