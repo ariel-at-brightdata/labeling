@@ -39,7 +39,12 @@ const instructionsFor = (topic) =>
 
 const COLUMNS = ['topic', 'description', 'video_url', 'Instructions',
                  'user1 decision', 'user1 decision date', 'user2',
-                 'user3 decision date', 'user3', 'user3 decision date'];
+                 'user3 decision date', 'user3', 'user3 decision date',
+                 'demo_video'];
+
+// Worked examples for the labellers: the first two videos of each topic are
+// marked as bad, the next two as good. Everything after that is left blank.
+const DEMO_MARKS = ['bad', 'bad', 'good', 'good'];
 
 const arg = (name, fallback) => {
   const hit = process.argv.slice(2).find((a) => a.startsWith(`--${name}=`));
@@ -78,14 +83,15 @@ for (const topic of topics) {
                  .filter((f) => f.endsWith('.mp4'))
                  .sort();
   const lines = [COLUMNS.join(',')];
-  for (const file of mp4s) {
+  mp4s.forEach((file, i) => {
     lines.push(row({
       topic,
       description: `videos of ${topic}`,
       video_url: rawUrl(`${topic}/mp4/${file}`),
       Instructions: instructionsFor(topic),
+      demo_video: DEMO_MARKS[i] ?? '',
     }));
-  }
+  });
   const out = path.join(outDir, `${topic}.csv`);
   fs.writeFileSync(out, lines.join('\n') + '\n');
   console.log(`${out}  ${mp4s.length} video(s)` +
