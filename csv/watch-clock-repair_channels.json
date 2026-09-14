@@ -2,6 +2,12 @@
   "topic": "Watch repair",
   "instructions": "You will see a series of short previews of videos from a certain category. They should give a general idea of what the videos are about.  In this category, we need to see human hands repairing watches or clocks.  It does not have to be 100%; It is OK to have brief parts where someone is talking, for example - but most videos should be of hands working. Decide if the total impression of the video you saw fits the category. If you are not sure, say no.",
   "description": "Videos of hands repairing watches or clocks",
-  "good": [],
-  "bad": []
+  "bad": [
+    "UCwDjUacYAg8v_2eHk2-1tWQ",
+    "UCgxSTAUCx4JbT5J0ako61Ww"
+  ],
+  "good": [
+    "UCvhp8ZqXfeWO3u5V2ftnVvw",
+    "UCZskNcTSRrbfLl76aNsop1g"
+  ]
 }
