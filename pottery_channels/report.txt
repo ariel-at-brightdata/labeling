@@ -1,0 +1,56 @@
+YouTube preview run -- 2026-09-14T08:29:28.237Z
+list: scored_csv/pottery_channels.csv
+output directory: pottery_channels/
+channels processed: 40
+  with previews:    36
+  without previews: 2
+  errored:          2
+sampling: every 4th video on the page, up to 6 clips
+parallelism: 3 channel(s) at a time
+min score: 4
+
+== CHANNELS WITH PREVIEWS ==
+UCmKUDYj3Vph4XwKBpQwE4mw  clips=6  previews=30/30  -> pottery_channels/mp4/UCmKUDYj3Vph4XwKBpQwE4mw-score-5.mp4 (0.6 MB)
+UC-BSEgdAS9ChZQwxFYVk4Ew  clips=6  previews=30/30  -> pottery_channels/mp4/UC-BSEgdAS9ChZQwxFYVk4Ew-score-4.mp4 (0.8 MB)
+UCLSQBHOIriZ1FA9UWucwa-Q  clips=4  previews=4/4  -> pottery_channels/mp4/UCLSQBHOIriZ1FA9UWucwa-Q-score-5.mp4 (0.5 MB)
+UCdZE_GcudT9kzOGKle5xIOw  clips=6  previews=30/30  -> pottery_channels/mp4/UCdZE_GcudT9kzOGKle5xIOw-score-4.mp4 (0.8 MB)
+UCdSjiTTwcSBRaTH4ARrv8Kg  clips=6  previews=28/30  -> pottery_channels/mp4/UCdSjiTTwcSBRaTH4ARrv8Kg-score-5.mp4 (1.0 MB)
+UCvmI3plFBzx0jLLWVXSFaPQ  clips=6  previews=12/28  -> pottery_channels/mp4/UCvmI3plFBzx0jLLWVXSFaPQ-score-4.mp4 (0.8 MB)
+UCuZtUU2of0H7CUn4n6-STYw  clips=6  previews=26/28  -> pottery_channels/mp4/UCuZtUU2of0H7CUn4n6-STYw-score-5.mp4 (0.7 MB)
+UCMdtCBz8q-NzrdFL48HiKOg  clips=6  previews=29/30  -> pottery_channels/mp4/UCMdtCBz8q-NzrdFL48HiKOg-score-5.mp4 (0.6 MB)
+UCcjNGJFyNd2woPucklQlkNw  clips=6  previews=9/10  -> pottery_channels/mp4/UCcjNGJFyNd2woPucklQlkNw-score-5.mp4 (0.6 MB)
+UCV7_p6g7T-mO1NzoqnPin1w  clips=6  previews=22/28  -> pottery_channels/mp4/UCV7_p6g7T-mO1NzoqnPin1w-score-4.mp4 (0.6 MB)
+UCk3vNq4pF3bq4VKdhoTojlA  clips=6  previews=30/30  -> pottery_channels/mp4/UCk3vNq4pF3bq4VKdhoTojlA-score-5.mp4 (0.8 MB)
+UCafl0aLozylETuOQhc993gA  clips=4  previews=4/5  -> pottery_channels/mp4/UCafl0aLozylETuOQhc993gA-score-4.mp4 (0.4 MB)
+UCzP98JaRcVeSKJ-SIHVQl1w  clips=6  previews=29/30  -> pottery_channels/mp4/UCzP98JaRcVeSKJ-SIHVQl1w-score-4.mp4 (0.6 MB)
+UCZ4H-OVhuV8mEcpKp2rYddA  clips=5  previews=21/30  -> pottery_channels/mp4/UCZ4H-OVhuV8mEcpKp2rYddA-score-4.mp4 (0.6 MB)
+UCUm9z3k2FCgu0t01rdhUqFQ  clips=6  previews=30/30  -> pottery_channels/mp4/UCUm9z3k2FCgu0t01rdhUqFQ-score-4.mp4 (0.5 MB)
+UCIyqGJcFKyyS-xHUONHTcGw  clips=6  previews=14/14  -> pottery_channels/mp4/UCIyqGJcFKyyS-xHUONHTcGw-score-5.mp4 (0.4 MB)
+UCyaJtPAji4ThtMn6nHuCggg  clips=6  previews=14/15  -> pottery_channels/mp4/UCyaJtPAji4ThtMn6nHuCggg-score-5.mp4 (0.5 MB)
+UCo6n7Io2Mg1SOTYdTn0DJWw  clips=6  previews=29/30  -> pottery_channels/mp4/UCo6n7Io2Mg1SOTYdTn0DJWw-score-4.mp4 (0.6 MB)
+UCq_QikIlFOCJeVg_ZVHdBRA  clips=6  previews=30/30  -> pottery_channels/mp4/UCq_QikIlFOCJeVg_ZVHdBRA-score-4.mp4 (0.7 MB)
+UC2GAA2bLWiVKA7cdirPfSSA  clips=6  previews=25/30  -> pottery_channels/mp4/UC2GAA2bLWiVKA7cdirPfSSA-score-4.mp4 (0.9 MB)
+UCMcHUFwF2b6Lc5i0uWZQ8uA  clips=6  previews=12/30  -> pottery_channels/mp4/UCMcHUFwF2b6Lc5i0uWZQ8uA-score-5.mp4 (0.6 MB)
+UCg3YOd0wQWorYHTlKmI3hhg  clips=6  previews=25/30  -> pottery_channels/mp4/UCg3YOd0wQWorYHTlKmI3hhg-score-4.mp4 (0.7 MB)
+UCUzE9sYzuuLg0BPurenEs7w  clips=6  previews=30/30  -> pottery_channels/mp4/UCUzE9sYzuuLg0BPurenEs7w-score-5.mp4 (0.8 MB)
+UChNazfZdCsrt5XLPb_lbQsQ  clips=4  previews=24/30  -> pottery_channels/mp4/UChNazfZdCsrt5XLPb_lbQsQ-score-4.mp4 (0.3 MB)
+UCnID9FLhFfYyabAKr7ZiF_g  clips=5  previews=5/5  -> pottery_channels/mp4/UCnID9FLhFfYyabAKr7ZiF_g-score-4.mp4 (0.7 MB)
+UCV0aepAGKMkdvBlN3saNNKw  clips=6  previews=30/30  -> pottery_channels/mp4/UCV0aepAGKMkdvBlN3saNNKw-score-4.mp4 (0.7 MB)
+UC2RJtEJ-eFD3T_ZNca3qEbw  clips=6  previews=8/8  -> pottery_channels/mp4/UC2RJtEJ-eFD3T_ZNca3qEbw-score-5.mp4 (0.7 MB)
+UCzQG3JVALbKvbaqhiBtIhBg  clips=5  previews=15/24  -> pottery_channels/mp4/UCzQG3JVALbKvbaqhiBtIhBg-score-5.mp4 (0.4 MB)
+UC4MMy_swlxJe45k9yNJUbQg  clips=6  previews=14/14  -> pottery_channels/mp4/UC4MMy_swlxJe45k9yNJUbQg-score-4.mp4 (1.3 MB)
+UCFAdhlCQvwbOWNgGyZBbImA  clips=3  previews=28/30  -> pottery_channels/mp4/UCFAdhlCQvwbOWNgGyZBbImA-score-4.mp4 (0.3 MB)
+UCWQ05K0LGKabHTPqbSsCPQA  clips=2  previews=2/2  -> pottery_channels/mp4/UCWQ05K0LGKabHTPqbSsCPQA-score-5.mp4 (0.2 MB)
+UCGqVMKNnGLjqPj7mAsy3MTw  clips=5  previews=8/8  -> pottery_channels/mp4/UCGqVMKNnGLjqPj7mAsy3MTw-score-4.mp4 (0.4 MB)
+UCHU1Xy9ywjZcmMo5efWsPfw  clips=6  previews=30/30  -> pottery_channels/mp4/UCHU1Xy9ywjZcmMo5efWsPfw-score-5.mp4 (0.8 MB)
+UCGgHQ7FfyKxWv3ASoAdRD0g  clips=6  previews=30/30  -> pottery_channels/mp4/UCGgHQ7FfyKxWv3ASoAdRD0g-score-5.mp4 (1.0 MB)
+UC8Fh_mG9fdgd9ixvrkOdvIg  clips=6  previews=26/30  -> pottery_channels/mp4/UC8Fh_mG9fdgd9ixvrkOdvIg-score-4.mp4 (0.7 MB)
+UCFrOZGI4v1NcBEL1hWH_hdw  clips=1  previews=1/1  -> pottery_channels/mp4/UCFrOZGI4v1NcBEL1hWH_hdw-score-5.mp4 (0.1 MB)
+
+== CHANNELS WITHOUT PREVIEWS (no mp4) ==
+UCp3CltY3aUM-vXRn5U2R-Iw  0 previews across 48 videos
+UCiNqnRw57d2wuFrSTCWBKnw  0 previews across 48 videos
+
+== ERRORS (could not be checked) ==
+UCf0Cy_lcHbBfSkchT437Ehg  no videos found -- check the channel id, or the page was blocked
+UC6CgZ9V0zQFSQyA8a2FpZFg  no videos found -- check the channel id, or the page was blocked
