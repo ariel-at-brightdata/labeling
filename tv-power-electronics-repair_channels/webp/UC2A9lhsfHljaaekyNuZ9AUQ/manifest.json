@@ -1,0 +1,50 @@
+[
+  {
+    "videoId": "uBrgwFJ2snU",
+    "title": "How Electronic Components WORK",
+    "webp": "https://i.ytimg.com/an_webp/uBrgwFJ2snU/mqdefault_6s.webp?du=3000&sqp=CJOWn9UG&rs=AOn4CLBVcMAuYXF-yOREiAan60hxn9IiyA",
+    "position": 1,
+    "file": "01_p01_uBrgwFJ2snU_How_Electronic_Components_WORK.webp",
+    "bytes": 136160
+  },
+  {
+    "videoId": "CPBVec-HWWA",
+    "title": "How Switched-Mode Power Supplies Work | The Secret of 300 Volts",
+    "webp": "https://i.ytimg.com/an_webp/CPBVec-HWWA/mqdefault_6s.webp?du=3000&sqp=CMCrn9UG&rs=AOn4CLCL76cHNbadKa99QYKAOR8LEviicg",
+    "position": 5,
+    "file": "02_p05_CPBVec-HWWA_How_Switched-Mode_Power_Supplies_Work_The_Secret_o.webp",
+    "bytes": 137982
+  },
+  {
+    "videoId": "YMfRpJXeNxI",
+    "title": "How a Dimmer with Triac and Diac Really Works | Light and Motor Control",
+    "webp": "https://i.ytimg.com/an_webp/YMfRpJXeNxI/mqdefault_6s.webp?du=3000&sqp=CK6jn9UG&rs=AOn4CLB23ubolXj1aPWLKDVRF9kNTxRDOQ",
+    "position": 9,
+    "file": "03_p09_YMfRpJXeNxI_How_a_Dimmer_with_Triac_and_Diac_Really_Works_Ligh.webp",
+    "bytes": 143062
+  },
+  {
+    "videoId": "RX9EzNNRucI",
+    "title": "How to Make a Homemade MOSFET Tester | Easy, Fast and Functional",
+    "webp": "https://i.ytimg.com/an_webp/RX9EzNNRucI/mqdefault_6s.webp?du=3000&sqp=CNKkn9UG&rs=AOn4CLAVEwXNWGWkq3I3joeKz428xF9wKA",
+    "position": 13,
+    "file": "04_p13_RX9EzNNRucI_How_to_Make_a_Homemade_MOSFET_Tester_Easy_Fast_and.webp",
+    "bytes": 123790
+  },
+  {
+    "videoId": "u7a0LGcjdUI",
+    "title": "How to Repair a Burnt-Out LED Floodlight Step by Step | Easy and Effective Guide",
+    "webp": "https://i.ytimg.com/an_webp/u7a0LGcjdUI/mqdefault_6s.webp?du=3000&sqp=CM70ntUG&rs=AOn4CLAgI_TJ1jK6AuCNOiXkN7JX33cEhA",
+    "position": 17,
+    "file": "05_p17_u7a0LGcjdUI_How_to_Repair_a_Burnt-Out_LED_Floodlight_Step_by_S.webp",
+    "bytes": 147124
+  },
+  {
+    "videoId": "AYWmATDDlo0",
+    "title": "How to Make a DC Motor Speed ​​Controller with Potentiometer",
+    "webp": "https://i.ytimg.com/an_webp/AYWmATDDlo0/mqdefault_6s.webp?du=3000&sqp=CJGsn9UG&rs=AOn4CLDGCBkDo66o1jOl2qmUYZe364vBPA",
+    "position": 22,
+    "file": "06_p22_AYWmATDDlo0_How_to_Make_a_DC_Motor_Speed_Controller_with_Poten.webp",
+    "bytes": 143926
+  }
+]
