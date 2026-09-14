@@ -766,8 +766,12 @@ const CRITERIA = {
                 'to have brief parts where a slide or video is shown.',
 };
 
-// Worked examples for the labellers: first two videos bad, next two good.
+// Fallback worked examples, used only when meta.json names no good/bad
+// channels: first two videos bad, next two good.
 const DEMO_MARKS = ['bad', 'bad', 'good', 'good'];
+
+// mp4 files are named <channelId>.mp4 or <channelId>-score-<n>.mp4.
+const channelOf = (file) => file.replace(/\.mp4$/, '').replace(/-score-[^-]*$/, '');
 
 // Topics that are scratch lists rather than labelling categories: no CSV.
 const CSV_SKIP = new Set(['channels']);
@@ -846,6 +850,11 @@ async function askMeta(dir, preset, askFn) {
     console.log('');
   }
 
+  // Carried through rather than asked for: these name the demo videos, and are
+  // edited in meta.json once the clips have been watched.
+  answers.good = prior?.good ?? [];
+  answers.bad = prior?.bad ?? [];
+
   await fs.mkdir(dir, { recursive: true });
   await fs.writeFile(path.join(dir, META), JSON.stringify(answers, null, 2) + '\n');
   return answers;
@@ -871,6 +880,19 @@ async function writeCsv(dir, repoSlug, branch, csvDir) {
   const description = meta.description || `videos of ${topic}`;
   const instructions = meta.instructions ?? instructionsFor(dir);
 
+  // Explicit demo channels win over the positional default. Warn about ids
+  // that match nothing, since a typo would otherwise just go unmarked.
+  const good = new Set(meta.good || []);
+  const bad = new Set(meta.bad || []);
+  const byChannel = good.size > 0 || bad.size > 0;
+  if (byChannel) {
+    const present = new Set(mp4s.map(channelOf));
+    const stray = [...good, ...bad].filter((id) => !present.has(id));
+    for (const id of stray) {
+      console.log(`  ! ${dir}/meta.json lists ${id}, which has no mp4 in this topic`);
+    }
+  }
+
   const lines = [CSV_COLUMNS.join(',')];
   mp4s.forEach((file, i) => {
     const url = `https://raw.githubusercontent.com/${repoSlug}/${branch}/` +
@@ -880,7 +902,9 @@ async function writeCsv(dir, repoSlug, branch, csvDir) {
       description,
       video_url: url,
       Instructions: instructions,
-      demo_video: DEMO_MARKS[i] ?? '',
+      demo_video: byChannel
+        ? (good.has(channelOf(file)) ? 'good' : bad.has(channelOf(file)) ? 'bad' : '')
+        : (DEMO_MARKS[i] ?? ''),
     };
     lines.push(CSV_COLUMNS.map((c) => csvCell(values[c] ?? '')).join(','));
   });
@@ -966,8 +990,17 @@ instructions, and the description. Previous answers are offered as defaults and
 saved to <list>/meta.json, so a re-run or --csv-only reuses them. Supply them
 with --topic/--instructions/--description to skip the questions entirely.
 
+meta.json also carries "good" and "bad" arrays of channel ids, which set the
+demo_video column for those channels' videos. They start empty and are meant to
+be filled in once you have watched the clips:
+
+  { "topic": "Pottery", ..., "good": ["UCabc..."], "bad": ["UCxyz..."] }
+
+While both are empty the first two videos are marked bad and the next two good,
+purely by position. Re-run --csv-only after editing to apply the change.
+
 OUTPUT
-  <list>/meta.json         the topic name, instructions and description
+  <list>/meta.json         topic, instructions, description, good/bad channels
   <list>/<list>.txt        copy of the input list used for the run
   <list>/report.txt        which channels had previews and which did not
   <list>/mp4/<id>.mp4      one video per channel
