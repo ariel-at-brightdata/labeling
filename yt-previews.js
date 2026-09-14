@@ -106,6 +106,46 @@ function parseCsv(text) {
   return rows;
 }
 
+const SCORED_DIR = 'scored_csv';   // where shared lists live, locally and in the repo
+
+// Find the list. A path that exists on disk always wins -- including one under
+// ./scored_csv -- so a local file is never shadowed by the repository. Only
+// when nothing matches locally is the name fetched from the repo's scored_csv
+// folder, which lets a bare --file=pottery_channels work anywhere.
+async function resolveList(name, repoSlug, branch = 'main') {
+  const withExts = (p) => [p, `${p}.csv`, `${p}.txt`];
+  const hasDir = name.includes('/') || name.includes(path.sep);
+
+  const local = hasDir ? withExts(name)
+                       : [...withExts(name), ...withExts(path.join(SCORED_DIR, name))];
+  for (const candidate of local) {
+    try {
+      const text = await fs.readFile(candidate, 'utf8');
+      return { text, display: candidate, filename: path.basename(candidate) };
+    } catch { /* next candidate */ }
+  }
+
+  // An explicit path was given and it is not there: do not silently reach out
+  // to the network for something the user pointed at on disk.
+  if (hasDir) {
+    throw new Error(`cannot read ${local.join(' or ')}`);
+  }
+
+  const remote = withExts(`https://raw.githubusercontent.com/${repoSlug}/${branch}/` +
+                          `${SCORED_DIR}/${encodeURIComponent(name)}`);
+  for (const url of remote) {
+    try {
+      const text = await get(url);
+      console.log(`  fetched ${url.split('/').slice(-2).join('/')} from ${repoSlug}`);
+      return { text, display: url, filename: path.basename(new URL(url).pathname) };
+    } catch { /* next candidate */ }
+  }
+
+  throw new Error(
+    `cannot find "${name}" locally (tried ${local.join(', ')}) ` +
+    `or in ${repoSlug}/${SCORED_DIR}/`);
+}
+
 // Accepted list formats: one channel per line, or a CSV carrying a channel_id
 // (or url/handle) column, optionally with a score column used in mp4 names.
 function readList(text, filename) {
@@ -815,6 +855,10 @@ INPUT
   a score_0_5 column, the score is appended to the mp4 name and --min_score
   filters which channels run.
 
+  A bare --file=NAME is looked for in the working directory, then ./scored_csv,
+  then the scored_csv folder of the git remote. A name containing a path is
+  only ever read from disk, never fetched.
+
 OPTIONS
   Hyphens and underscores are interchangeable: --min-score and --min_score
   both work. An unrecognised --flag is an error, not a channel name.
@@ -847,8 +891,9 @@ EXAMPLES
   A list whose name has a space (quote it; .txt is optional):
     node yt-previews.js --file="talking heads"
 
-  A scored CSV, keeping only channels scored 4 or 5:
-    node yt-previews.js --file=pottery_channels.csv --min_score=4 --parallel=5
+  A scored CSV, keeping only channels scored 4 or 5. A bare name is found in
+  ./scored_csv, or fetched from that folder in the repo if it is not local:
+    node yt-previews.js --file=pottery_channels --min_score=4 --parallel=5
 
   Same, but push the results to GitHub when done:
     node yt-previews.js --file=pottery_channels.csv --min_score=4 --upload=true
@@ -897,6 +942,7 @@ async function main() {
   const scoreByRaw = new Map();   // input line -> score, for mp4 filenames
   let minScore = MIN_SCORE;
   let wantCsv = true;
+  let listText = null;            // contents of the resolved list, local or remote
   const KNOWN = ['file', 'limit', 'out', 'parallel', 'upload', 'repo',
                  'min_score', 'csv', 'csv_only', 'help'];
   const die = (msg) => { console.error(msg); process.exit(1); };
@@ -938,20 +984,18 @@ async function main() {
   // No URLs on the command line means: work through the channel list file.
   if (!urls.length && !listFile) listFile = DEFAULT_LIST;
   if (listFile) {
-    let text;
-    const candidates = [listFile, `${listFile}.txt`, `${listFile}.csv`];
-    for (const c of candidates) {
-      try {
-        text = await fs.readFile(c, 'utf8');
-        listFile = c;
-        break;
-      } catch { /* try the next candidate */ }
-    }
-    if (text === undefined) {
-      console.error(`cannot read ${candidates.join(' or ')} -- put one channel URL ` +
-                    `per line in it, or pass URLs as arguments`);
+    let text, listFilename;
+    try {
+      const found = await resolveList(listFile, await repoSlugFromGit());
+      text = found.text;
+      listFile = found.display;
+      listFilename = found.filename;
+    } catch (err) {
+      console.error(`${err.message}\n  put one channel per line in a .txt or .csv, ` +
+                    `or pass channels as arguments`);
       process.exit(1);
     }
+    listText = text;
     let parsed;
     try {
       parsed = readList(text, listFile);
@@ -975,7 +1019,7 @@ async function main() {
       process.exit(1);
     }
     console.log(`${urls.length} channel(s) from ${listFile}`);
-    if (!outDir) outDir = path.basename(listFile).replace(/\.[^.]+$/, '');
+    if (!outDir) outDir = listFilename.replace(/\.[^.]+$/, '');
   }
 
   // A list file with no extension would collide with the directory named after
@@ -990,10 +1034,10 @@ async function main() {
 
   // Keep the exact input list with the results, so a run stays self-describing
   // even after the source list is edited for the next one.
-  if (listFile) {
+  if (listText !== null) {
     const copy = path.join(outDir, path.basename(listFile));
     if (path.resolve(copy) !== path.resolve(listFile)) {
-      await fs.copyFile(listFile, copy);
+      await fs.writeFile(copy, listText);
       console.log(`input list copied to ${copy}`);
     }
   }
