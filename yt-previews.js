@@ -775,37 +775,120 @@ const CSV_SKIP = new Set(['channels']);
 const instructionsFor = (topic) =>
   CRITERIA[topic] ? `${PREAMBLE} ${CRITERIA[topic]}` : '';
 
+const META = 'meta.json';   // per-run: the friendly topic name and label text
+
+async function readMeta(dir) {
+  try {
+    return JSON.parse(await fs.readFile(path.join(dir, META), 'utf8'));
+  } catch {
+    return null;
+  }
+}
+
+// Ask for the three labelling fields up front, so a run never silently
+// produces a CSV with a blank Instructions column. Previous answers (or the
+// built-in CRITERIA) are offered as defaults; Enter accepts them.
+async function askMeta(dir, preset, askFn) {
+  const prior = await readMeta(dir);
+  const fallbackTopic = prior?.topic || dir;
+  const fields = [
+    ['topic', 'Friendly topic name', prior?.topic || dir],
+    ['instructions', 'Instructions', prior?.instructions || instructionsFor(dir)],
+    ['description', 'Description', prior?.description || `videos of ${fallbackTopic}`],
+  ];
+
+  // Anything supplied on the command line is taken as given, not asked for.
+  const answers = {};
+  const missing = fields.filter(([key]) => {
+    if (preset[key]) { answers[key] = preset[key]; return false; }
+    return true;
+  });
+
+  if (missing.length) {
+    if (!askFn && !process.stdin.isTTY) {
+      throw new Error(
+        `${missing.map(([k]) => '--' + k).join(', ')} must be given on the command ` +
+        `line when there is no terminal to prompt on`);
+    }
+
+    let rl;
+    let ask = askFn;
+    if (!ask) {
+      const readline = require('readline/promises');
+      rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+      // Ctrl-D (or a closed pipe) must end the run, not spin on an empty answer.
+      let closed = false;
+      rl.on('close', () => { closed = true; });
+      ask = async (q) => {
+        const a = await rl.question(q);
+        if (closed && !a) throw new Error('input ended before all fields were given');
+        return a;
+      };
+    }
+
+    try {
+      console.log('\nLabelling fields for this run (Enter accepts the default):');
+      for (const [key, label, fallback] of missing) {
+        for (let attempt = 1; ; attempt++) {
+          const shown = fallback ? `\n  [${fallback}]\n> ` : '\n> ';
+          const answer = (await ask(`\n${label}:${shown}`)).trim();
+          const value = answer || fallback;
+          if (value) { answers[key] = value; break; }
+          if (attempt >= 3) {
+            throw new Error(`no value given for ${label}; pass --${key}=... instead`);
+          }
+          console.log('  (required -- please enter a value)');
+        }
+      }
+    } finally {
+      if (rl) rl.close();
+    }
+    console.log('');
+  }
+
+  await fs.mkdir(dir, { recursive: true });
+  await fs.writeFile(path.join(dir, META), JSON.stringify(answers, null, 2) + '\n');
+  return answers;
+}
+
 // Quote only when a field needs it, so the output diffs cleanly.
 const csvCell = (v) => (/[",\n]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v);
 
-async function writeCsv(topic, repoSlug, branch, csvDir) {
-  if (CSV_SKIP.has(topic)) return null;
+// `dir` is the run directory; row values come from its meta.json when one
+// exists, falling back to the directory name and the built-in CRITERIA.
+async function writeCsv(dir, repoSlug, branch, csvDir) {
+  if (CSV_SKIP.has(dir)) return null;
   let mp4s;
   try {
-    mp4s = (await fs.readdir(path.join(topic, 'mp4'))).filter((f) => f.endsWith('.mp4')).sort();
+    mp4s = (await fs.readdir(path.join(dir, 'mp4'))).filter((f) => f.endsWith('.mp4')).sort();
   } catch {
     return null;                       // no mp4 directory: nothing to describe
   }
   if (!mp4s.length) return null;
 
+  const meta = (await readMeta(dir)) || {};
+  const topic = meta.topic || dir;
+  const description = meta.description || `videos of ${topic}`;
+  const instructions = meta.instructions ?? instructionsFor(dir);
+
   const lines = [CSV_COLUMNS.join(',')];
   mp4s.forEach((file, i) => {
     const url = `https://raw.githubusercontent.com/${repoSlug}/${branch}/` +
-                [topic, 'mp4', file].map(encodeURIComponent).join('/');
+                [dir, 'mp4', file].map(encodeURIComponent).join('/');
     const values = {
       topic,
-      description: `videos of ${topic}`,
+      description,
       video_url: url,
-      Instructions: instructionsFor(topic),
+      Instructions: instructions,
       demo_video: DEMO_MARKS[i] ?? '',
     };
     lines.push(CSV_COLUMNS.map((c) => csvCell(values[c] ?? '')).join(','));
   });
 
   await fs.mkdir(csvDir, { recursive: true });
-  const out = path.join(csvDir, `${topic}.csv`);
+  const out = path.join(csvDir, `${dir}.csv`);
   await fs.writeFile(out, lines.join('\n') + '\n');
-  return { out, rows: mp4s.length };
+  return { out, rows: mp4s.length, topic, instructions };
 }
 
 // Derive owner/name from whatever origin is set to, so the URLs in the CSV
@@ -819,8 +902,8 @@ async function rebuildAllCsvs() {
     if (e.name === 'csv' || e.name.startsWith('.')) continue;
     const written = await writeCsv(e.name, slug, 'main', 'csv');
     if (written) {
-      console.log(`${written.out}  ${written.rows} row(s)` +
-                  (instructionsFor(e.name) ? '  [instructions set]' : '  [no instructions]'));
+      console.log(`${written.out}  ${written.rows} row(s)  topic "${written.topic}"` +
+                  (written.instructions ? '' : '  [no instructions]'));
       total++;
     }
   }
@@ -868,13 +951,23 @@ OPTIONS
   --min_score=N      for scored CSVs, skip channels below N (default ${MIN_SCORE})
   --parallel=N       channels processed at once (default 1)
   --out=DIR          output directory (default: the list's name)
-  --csv=false        skip writing the labelling CSV
+  --topic=NAME       friendly topic name used in the CSV (asked for if omitted)
+  --instructions=... labeller instructions      (asked for if omitted)
+  --description=...  CSV description column     (asked for if omitted)
+  --csv=false        skip writing the labelling CSV, and skip the questions
   --csv-only         rebuild every topic's CSV from the mp4s on disk, then exit
   --upload=true      commit the run and push it to GitHub
   --repo=URL         set the git remote; only needed once
   --help             this text
 
+Before anything is downloaded you are asked for three labelling fields: a
+friendly topic name (used in the CSV instead of the filename), the labeller
+instructions, and the description. Previous answers are offered as defaults and
+saved to <list>/meta.json, so a re-run or --csv-only reuses them. Supply them
+with --topic/--instructions/--description to skip the questions entirely.
+
 OUTPUT
+  <list>/meta.json         the topic name, instructions and description
   <list>/<list>.txt        copy of the input list used for the run
   <list>/report.txt        which channels had previews and which did not
   <list>/mp4/<id>.mp4      one video per channel
@@ -910,6 +1003,11 @@ EXAMPLES
   Rebuild all the labelling CSVs without re-running anything:
     node yt-previews.js --csv-only
 
+  Unattended, with the labelling fields supplied so nothing is asked:
+    node yt-previews.js --file=pottery_channels --topic="Pottery" \
+      --instructions="We need to see clay being shaped..." \
+      --description="videos of pottery making" --upload=true
+
 NOTES
   Not every channel exposes previews, and coverage varies: some have 30 of 30,
   others 6 of 30, some none. A channel with none is recorded in report.txt and
@@ -943,8 +1041,10 @@ async function main() {
   let minScore = MIN_SCORE;
   let wantCsv = true;
   let listText = null;            // contents of the resolved list, local or remote
+  const preset = {};              // labelling fields given on the command line
   const KNOWN = ['file', 'limit', 'out', 'parallel', 'upload', 'repo',
-                 'min_score', 'csv', 'csv_only', 'help'];
+                 'min_score', 'csv', 'csv_only', 'help',
+                 'topic', 'instructions', 'description'];
   const die = (msg) => { console.error(msg); process.exit(1); };
   const num = (raw, flag) => {
     const n = Number(raw);
@@ -973,6 +1073,9 @@ async function main() {
     else if (flag === 'repo') repoUrl = value ?? argv[++i];
     else if (flag === 'min_score') minScore = num(value ?? argv[++i], 'min_score');
     else if (flag === 'csv') wantCsv = !/^(false|0|no)$/i.test(value ?? 'true');
+    else if (flag === 'topic') preset.topic = value ?? argv[++i];
+    else if (flag === 'instructions') preset.instructions = value ?? argv[++i];
+    else if (flag === 'description') preset.description = value ?? argv[++i];
     else if (flag === 'csv_only' || flag === 'help') { /* handled before the loop */ }
     else {
       die(`unknown option --${m[1]}\n` +
@@ -1031,6 +1134,18 @@ async function main() {
 
   // Fail loudly up front rather than after downloading everything.
   await assertAnimatedWebpSupport();
+
+  // Collect the labelling fields before a single channel is fetched, so the
+  // run cannot end in a CSV with a blank topic or missing instructions.
+  if (wantCsv && !CSV_SKIP.has(outDir)) {
+    try {
+      const meta = await askMeta(outDir, preset);
+      console.log(`topic: ${meta.topic}`);
+    } catch (err) {
+      console.error(err.message);
+      process.exit(1);
+    }
+  }
 
   // Keep the exact input list with the results, so a run stays self-describing
   // even after the source list is edited for the next one.
