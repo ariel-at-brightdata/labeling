@@ -1,7 +1,0 @@
-{
-  "topic": "talkingheads",
-  "instructions": "You will see a few short previews of video from a certain category. It should give a general idea of the contents of videos. Use your judgment to decide if the total impression of the video you saw fits the category. It does not have to be 100%. If you are not sure, say no. We need to see one or more people talking in most of the video, like sitting for a podcast or an interview. It is OK to have brief parts where a slide or video is shown.",
-  "description": "videos of talkingheads",
-  "good": [],
-  "bad": []
-}
