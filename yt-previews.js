@@ -762,31 +762,21 @@ const CSV_COLUMNS = ['topic', 'video_url',
                      'user1 decision', 'user1 decision date', 'user2',
                      'user3 decision date', 'user3', 'user3 decision date'];
 
-// Shared opening for every labelled topic, then the per-topic criterion. A
-// topic with no entry here gets an empty Instructions column.
-const PREAMBLE =
-  'You will see a few short previews of video from a certain category. ' +
-  'It should give a general idea of the contents of videos. Use your judgment ' +
-  'to decide if the total impression of the video you saw fits the category. ' +
-  'It does not have to be 100%. If you are not sure, say no.';
-
-const CRITERIA = {
-  hands1: 'We need to see human hands manipulating something in most of the ' +
-          'video. For example, sculpting or writing. It is okay to have brief ' +
-          'parts where hands are not visible.',
-  talkingheads: 'We need to see one or more people talking in most of the ' +
-                'video, like sitting for a podcast or an interview. It is OK ' +
-                'to have brief parts where a slide or video is shown.',
-};
+// The fixed opening of every topic's instructions. It ends mid-sentence: what
+// the labeller must look for is appended to it, per topic.
+const INSTRUCTIONS_PREFIX =
+  'You will see a series of short previews of videos from a certain category. ' +
+  'They should give a general idea of what the videos are about.  It does not ' +
+  'have to be 100%; It is OK to have brief parts where there is a static ' +
+  'image, for example. Decide if the total impression of the video you saw ' +
+  'fits the category. If you are not sure, say no.\n\n' +
+  'IMPORTANT: In this category, we need to see ';
 
 // mp4 files are named <channelId>.mp4 or <channelId>-score-<n>.mp4.
 const channelOf = (file) => file.replace(/\.mp4$/, '').replace(/-score-[^-]*$/, '');
 
 // Topics that are scratch lists rather than labelling categories: no CSV.
 const CSV_SKIP = new Set(['channels', 'pottery_channels', 'tutorials']);
-
-const instructionsFor = (topic) =>
-  CRITERIA[topic] ? `${PREAMBLE} ${CRITERIA[topic]}` : '';
 
 const CSV_DIR = 'csv';      // the labelling sheets and their metadata
 
@@ -815,9 +805,13 @@ async function saveMeta(dir, meta) {
 async function askMeta(dir, preset, askFn, opts = {}) {
   const prior = await readMeta(dir);
   const fallbackTopic = prior?.topic || dir;
+  // Only the appended part is re-offered, not the fixed opening.
+  const priorSuffix = prior?.instructions?.startsWith(INSTRUCTIONS_PREFIX)
+    ? prior.instructions.slice(INSTRUCTIONS_PREFIX.length)
+    : (prior?.instructions || '');
   const fields = [
     ['topic', 'Friendly topic name', prior?.topic || dir],
-    ['instructions', 'Instructions', prior?.instructions || instructionsFor(dir)],
+    ['instructions', 'Instructions', priorSuffix, 'prefixed'],
     ['description', 'Description', prior?.description || `videos of ${fallbackTopic}`],
   ];
 
@@ -866,9 +860,24 @@ async function askMeta(dir, preset, askFn, opts = {}) {
       console.log('\nLabelling fields for this run (Enter accepts the default):');
       for (const [key, label, fallback, type] of missing) {
         for (let attempt = 1; ; attempt++) {
+          if (type === 'prefixed' && attempt === 1) {
+            console.log(`\n${label} -- this fixed text always comes first:\n`);
+            console.log(INSTRUCTIONS_PREFIX.split('\n').map((l) => '    ' + l).join('\n'));
+            console.log('\n  ...now complete the sentence:');
+          }
           const shown = fallback ? `\n  [${fallback}]\n> ` : '\n> ';
-          const answer = (await ask(`\n${label}:${shown}`)).trim();
+          const answer = (await ask(
+            type === 'prefixed' ? shown : `\n${label}:${shown}`)).trim();
           const value = answer || fallback;
+
+          if (type === 'prefixed') {
+            if (value) { answers[key] = INSTRUCTIONS_PREFIX + value; break; }
+            if (attempt >= 3) {
+              throw new Error(`no value given for ${label}; pass --${key}=... instead`);
+            }
+            console.log('  (required -- describe what must be visible)');
+            continue;
+          }
 
           if (type === 'list') {
             if (/^(-|none)$/i.test(value)) { answers[key] = []; break; }
@@ -1008,7 +1017,8 @@ OPTIONS
   --parallel=N       channels processed at once (default 1)
   --out=DIR          output directory (default: the list's name)
   --topic=NAME       friendly topic name used in the CSV (asked for if omitted)
-  --instructions=... labeller instructions      (asked for if omitted)
+  --instructions=... what must be visible; appended to the fixed opening
+                     (asked for if omitted)
   --description=...  CSV description column     (asked for if omitted)
   --csv=false        skip writing the labelling CSV, and skip the questions
   --json-only        ask the questions and write csv/<topic>.json, then stop:
