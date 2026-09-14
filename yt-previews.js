@@ -744,10 +744,11 @@ async function upload(outDir, repoUrl, summary) {
 // file's raw URL on GitHub.
 // ============================================================================
 
-const CSV_COLUMNS = ['topic', 'description', 'video_url', 'Instructions',
+// description, Instructions and the demo videos now live in the topic's JSON,
+// so the sheet carries only what varies per row plus the labellers' columns.
+const CSV_COLUMNS = ['topic', 'video_url',
                      'user1 decision', 'user1 decision date', 'user2',
-                     'user3 decision date', 'user3', 'user3 decision date',
-                     'demo_video'];
+                     'user3 decision date', 'user3', 'user3 decision date'];
 
 // Shared opening for every labelled topic, then the per-topic criterion. A
 // topic with no entry here gets an empty Instructions column.
@@ -766,10 +767,6 @@ const CRITERIA = {
                 'to have brief parts where a slide or video is shown.',
 };
 
-// Fallback worked examples, used only when meta.json names no good/bad
-// channels: first two videos bad, next two good.
-const DEMO_MARKS = ['bad', 'bad', 'good', 'good'];
-
 // mp4 files are named <channelId>.mp4 or <channelId>-score-<n>.mp4.
 const channelOf = (file) => file.replace(/\.mp4$/, '').replace(/-score-[^-]*$/, '');
 
@@ -779,14 +776,25 @@ const CSV_SKIP = new Set(['channels']);
 const instructionsFor = (topic) =>
   CRITERIA[topic] ? `${PREAMBLE} ${CRITERIA[topic]}` : '';
 
-const META = 'meta.json';   // per-run: the friendly topic name and label text
+const CSV_DIR = 'csv';      // the labelling sheets and their metadata
+
+// Metadata sits beside its CSV as csv/<topic>.json, so one folder holds both.
+const metaPath = (dir) => path.join(CSV_DIR, `${dir}.json`);
 
 async function readMeta(dir) {
-  try {
-    return JSON.parse(await fs.readFile(path.join(dir, META), 'utf8'));
-  } catch {
-    return null;
+  // Runs made before the move kept it inside the run directory.
+  for (const p of [metaPath(dir), path.join(dir, 'meta.json')]) {
+    try {
+      return JSON.parse(await fs.readFile(p, 'utf8'));
+    } catch { /* try the next location */ }
   }
+  return null;
+}
+
+async function saveMeta(dir, meta) {
+  await fs.mkdir(CSV_DIR, { recursive: true });
+  await fs.writeFile(metaPath(dir), JSON.stringify(meta, null, 2) + '\n');
+  return metaPath(dir);
 }
 
 // Ask for the three labelling fields up front, so a run never silently
@@ -855,8 +863,8 @@ async function askMeta(dir, preset, askFn) {
   answers.good = prior?.good ?? [];
   answers.bad = prior?.bad ?? [];
 
-  await fs.mkdir(dir, { recursive: true });
-  await fs.writeFile(path.join(dir, META), JSON.stringify(answers, null, 2) + '\n');
+  const written = await saveMeta(dir, answers);
+  console.log(`metadata written to ${written}`);
   return answers;
 }
 
@@ -877,42 +885,27 @@ async function writeCsv(dir, repoSlug, branch, csvDir) {
 
   const meta = (await readMeta(dir)) || {};
   const topic = meta.topic || dir;
-  const description = meta.description || `videos of ${topic}`;
-  const instructions = meta.instructions ?? instructionsFor(dir);
 
-  // Explicit demo channels win over the positional default. Warn about ids
-  // that match nothing, since a typo would otherwise just go unmarked.
-  const good = new Set(meta.good || []);
-  const bad = new Set(meta.bad || []);
-  const byChannel = good.size > 0 || bad.size > 0;
-  if (byChannel) {
-    const present = new Set(mp4s.map(channelOf));
-    const stray = [...good, ...bad].filter((id) => !present.has(id));
-    for (const id of stray) {
-      console.log(`  ! ${dir}/meta.json lists ${id}, which has no mp4 in this topic`);
-    }
+  // The good/bad channels are consumed from the JSON, not written into the
+  // sheet, but an id matching no mp4 is still worth reporting.
+  const present = new Set(mp4s.map(channelOf));
+  const stray = [...(meta.good || []), ...(meta.bad || [])].filter((id) => !present.has(id));
+  for (const id of stray) {
+    console.log(`  ! ${metaPath(dir)} lists ${id}, which has no mp4 in this topic`);
   }
 
   const lines = [CSV_COLUMNS.join(',')];
-  mp4s.forEach((file, i) => {
+  mp4s.forEach((file) => {
     const url = `https://raw.githubusercontent.com/${repoSlug}/${branch}/` +
                 [dir, 'mp4', file].map(encodeURIComponent).join('/');
-    const values = {
-      topic,
-      description,
-      video_url: url,
-      Instructions: instructions,
-      demo_video: byChannel
-        ? (good.has(channelOf(file)) ? 'good' : bad.has(channelOf(file)) ? 'bad' : '')
-        : (DEMO_MARKS[i] ?? ''),
-    };
+    const values = { topic, video_url: url };
     lines.push(CSV_COLUMNS.map((c) => csvCell(values[c] ?? '')).join(','));
   });
 
   await fs.mkdir(csvDir, { recursive: true });
   const out = path.join(csvDir, `${dir}.csv`);
   await fs.writeFile(out, lines.join('\n') + '\n');
-  return { out, rows: mp4s.length, topic, instructions };
+  return { out, rows: mp4s.length, topic, instructions: meta.instructions };
 }
 
 // Derive owner/name from whatever origin is set to, so the URLs in the CSV
@@ -979,6 +972,8 @@ OPTIONS
   --instructions=... labeller instructions      (asked for if omitted)
   --description=...  CSV description column     (asked for if omitted)
   --csv=false        skip writing the labelling CSV, and skip the questions
+  --json-only        ask the questions and write csv/<topic>.json, then stop:
+                     no previews are downloaded and no mp4 is built
   --csv-only         rebuild every topic's CSV from the mp4s on disk, then exit
   --upload=true      commit the run and push it to GitHub
   --repo=URL         set the git remote; only needed once
@@ -990,22 +985,21 @@ instructions, and the description. Previous answers are offered as defaults and
 saved to <list>/meta.json, so a re-run or --csv-only reuses them. Supply them
 with --topic/--instructions/--description to skip the questions entirely.
 
-meta.json also carries "good" and "bad" arrays of channel ids, which set the
-demo_video column for those channels' videos. They start empty and are meant to
-be filled in once you have watched the clips:
+The answers are saved as csv/<topic>.json, beside the sheet itself. That file
+also carries "good" and "bad" arrays of channel ids naming the demo videos:
 
   { "topic": "Pottery", ..., "good": ["UCabc..."], "bad": ["UCxyz..."] }
 
-While both are empty the first two videos are marked bad and the next two good,
-purely by position. Re-run --csv-only after editing to apply the change.
+They start empty; fill them in once you have watched the clips. The CSV itself
+carries only the topic and the video urls, since everything else is in the JSON.
 
 OUTPUT
-  <list>/meta.json         topic, instructions, description, good/bad channels
+  csv/<list>.json          topic, instructions, description, good/bad channels
+  csv/<list>.csv           labelling sheet: topic, video_url, decision columns
   <list>/<list>.txt        copy of the input list used for the run
   <list>/report.txt        which channels had previews and which did not
   <list>/mp4/<id>.mp4      one video per channel
   <list>/webp/<id>/        the source clips + manifest.json
-  csv/<list>.csv           labelling sheet pointing at the raw GitHub URLs
 
 EXAMPLES
   Run the default list:
@@ -1032,6 +1026,9 @@ EXAMPLES
 
   Ten clips per channel instead of six:
     node yt-previews.js --file=hands1 --limit=10
+
+  Set up a topic's labelling fields and push them, downloading nothing:
+    node yt-previews.js --file=pottery_channels --json-only --upload=true
 
   Rebuild all the labelling CSVs without re-running anything:
     node yt-previews.js --csv-only
@@ -1075,9 +1072,10 @@ async function main() {
   let wantCsv = true;
   let listText = null;            // contents of the resolved list, local or remote
   const preset = {};              // labelling fields given on the command line
+  let jsonOnly = false;
   const KNOWN = ['file', 'limit', 'out', 'parallel', 'upload', 'repo',
                  'min_score', 'csv', 'csv_only', 'help',
-                 'topic', 'instructions', 'description'];
+                 'topic', 'instructions', 'description', 'json_only'];
   const die = (msg) => { console.error(msg); process.exit(1); };
   const num = (raw, flag) => {
     const n = Number(raw);
@@ -1109,12 +1107,41 @@ async function main() {
     else if (flag === 'topic') preset.topic = value ?? argv[++i];
     else if (flag === 'instructions') preset.instructions = value ?? argv[++i];
     else if (flag === 'description') preset.description = value ?? argv[++i];
+    else if (flag === 'json_only') jsonOnly = !/^(false|0|no)$/i.test(value ?? 'true');
     else if (flag === 'csv_only' || flag === 'help') { /* handled before the loop */ }
     else {
       die(`unknown option --${m[1]}\n` +
           `valid options: ${KNOWN.map((k) => '--' + k).join(', ')}\n` +
           `run with --help for usage`);
     }
+  }
+
+  if (jsonOnly) {
+    // The topic name is the only thing needed, and it comes from --out or the
+    // list's filename -- the list itself is never read.
+    const name = outDir ||
+      (listFile ? path.basename(listFile).replace(/\.[^.]+$/, '') : null);
+    if (!name) {
+      console.error('--json-only needs --file=NAME or --out=NAME to name the topic');
+      process.exit(1);
+    }
+    let meta;
+    try {
+      meta = await askMeta(name, preset);
+    } catch (err) {
+      console.error(err.message);
+      process.exit(1);
+    }
+    console.log(`topic: ${meta.topic}`);
+    if (doUpload) {
+      try {
+        console.log(await upload(name, repoUrl, []));
+      } catch (err) {
+        console.error(`\n  ! upload failed: ${err.message}`);
+        process.exitCode = 1;
+      }
+    }
+    return;
   }
 
   // No URLs on the command line means: work through the channel list file.
