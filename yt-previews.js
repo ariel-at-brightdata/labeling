@@ -714,25 +714,37 @@ async function upload(outDir, repoUrl, summary) {
 
   const branch = (await git(['rev-parse', '--abbrev-ref', 'HEAD'])).out || 'main';
 
-  // If the remote moved on (another machine, an edit in the web UI), rebase
-  // onto it rather than failing the push.
-  const fetched = await git([...tokenArgs, 'fetch', 'origin', branch]);
-  if (fetched.code === 0) {
-    const behind = await git(['rev-list', '--count', `HEAD..origin/${branch}`]);
-    if (behind.code === 0 && Number(behind.out) > 0) {
-      console.log(`  remote is ${behind.out} commit(s) ahead -- rebasing`);
-      const rb = await git(['pull', '--rebase', 'origin', branch]);
-      if (rb.code !== 0) throw new Error(`rebase failed, resolve by hand: ${rb.out}`);
-    }
-  }
+  // Rebase onto the remote and push, retrying the whole cycle: another run (or
+  // another machine) can land a commit in the gap between the two, which git
+  // reports as a rejected or unlockable ref.
+  const RACE = /cannot lock ref|non-fast-forward|fetch first|rejected|stale info/i;
+  const DENIED = /could not read Username|Authentication failed|Permission denied|403/i;
+  const attempts = 5;
 
-  console.log('  pushing...');
-  const push = await git([...tokenArgs, 'push', '-u', 'origin', branch]);
-  if (push.code !== 0) {
-    const denied = /could not read Username|Authentication failed|Permission denied|403/i
-      .test(push.out);
-    throw new Error(denied ? `${AUTH_HELP}\n\n  git said: ${push.out.split('\n')[0]}`
-                           : `push failed: ${push.out}`);
+  for (let attempt = 1; ; attempt++) {
+    const fetched = await git([...tokenArgs, 'fetch', 'origin', branch]);
+    if (fetched.code === 0) {
+      const behind = await git(['rev-list', '--count', `HEAD..origin/${branch}`]);
+      if (behind.code === 0 && Number(behind.out) > 0) {
+        console.log(`  remote is ${behind.out} commit(s) ahead -- rebasing`);
+        const rb = await git(['-c', 'rebase.autoStash=true', 'pull', '--rebase',
+                              'origin', branch]);
+        if (rb.code !== 0) throw new Error(`rebase failed, resolve by hand: ${rb.out}`);
+      }
+    }
+
+    console.log(attempt === 1 ? '  pushing...' : `  pushing (attempt ${attempt})...`);
+    const push = await git([...tokenArgs, 'push', '-u', 'origin', branch]);
+    if (push.code === 0) break;
+
+    if (DENIED.test(push.out)) {
+      throw new Error(`${AUTH_HELP}\n\n  git said: ${push.out.split('\n')[0]}`);
+    }
+    if (!RACE.test(push.out) || attempt >= attempts) {
+      throw new Error(`push failed: ${push.out}`);
+    }
+    console.log('  someone else pushed first -- rebasing and trying again');
+    await sleep(1500 * attempt);
   }
   const webUrl = url.replace(/^git@github\.com:/, 'https://github.com/').replace(/\.git$/, '');
   console.log(`  pushed to ${webUrl}`);
