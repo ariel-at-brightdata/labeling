@@ -771,7 +771,7 @@ const CRITERIA = {
 const channelOf = (file) => file.replace(/\.mp4$/, '').replace(/-score-[^-]*$/, '');
 
 // Topics that are scratch lists rather than labelling categories: no CSV.
-const CSV_SKIP = new Set(['channels']);
+const CSV_SKIP = new Set(['channels', 'pottery_channels', 'tutorials']);
 
 const instructionsFor = (topic) =>
   CRITERIA[topic] ? `${PREAMBLE} ${CRITERIA[topic]}` : '';
@@ -800,7 +800,7 @@ async function saveMeta(dir, meta) {
 // Ask for the three labelling fields up front, so a run never silently
 // produces a CSV with a blank Instructions column. Previous answers (or the
 // built-in CRITERIA) are offered as defaults; Enter accepts them.
-async function askMeta(dir, preset, askFn) {
+async function askMeta(dir, preset, askFn, opts = {}) {
   const prior = await readMeta(dir);
   const fallbackTopic = prior?.topic || dir;
   const fields = [
@@ -809,10 +809,22 @@ async function askMeta(dir, preset, askFn) {
     ['description', 'Description', prior?.description || `videos of ${fallbackTopic}`],
   ];
 
+  // The demo examples are only asked for when setting a topic up, since which
+  // videos are good or bad is not known until the clips have been watched.
+  if (opts.demos) {
+    fields.push(
+      ['bad', "Two bad example channel ids (comma separated, '-' for none)",
+       (prior?.bad || []).join(', '), 'list'],
+      ['good', "Two good example channel ids (comma separated, '-' for none)",
+       (prior?.good || []).join(', '), 'list'],
+    );
+  }
+
   // Anything supplied on the command line is taken as given, not asked for.
   const answers = {};
   const missing = fields.filter(([key]) => {
-    if (preset[key]) { answers[key] = preset[key]; return false; }
+    const given = preset[key];
+    if (Array.isArray(given) ? given.length : given) { answers[key] = given; return false; }
     return true;
   });
 
@@ -840,11 +852,26 @@ async function askMeta(dir, preset, askFn) {
 
     try {
       console.log('\nLabelling fields for this run (Enter accepts the default):');
-      for (const [key, label, fallback] of missing) {
+      for (const [key, label, fallback, type] of missing) {
         for (let attempt = 1; ; attempt++) {
           const shown = fallback ? `\n  [${fallback}]\n> ` : '\n> ';
           const answer = (await ask(`\n${label}:${shown}`)).trim();
           const value = answer || fallback;
+
+          if (type === 'list') {
+            if (/^(-|none)$/i.test(value)) { answers[key] = []; break; }
+            const ids = value.split(/[,\s]+/).map((x) => x.trim()).filter(Boolean);
+            const wrong = ids.filter((id) => !UC_ID.test(id));
+            if (ids.length && !wrong.length) { answers[key] = ids; break; }
+            if (attempt >= 3) {
+              throw new Error(`no usable ids for ${label}; pass --${key}=id1,id2 instead`);
+            }
+            console.log(wrong.length
+              ? `  (not a channel id: ${wrong.join(', ')} -- ids look like UCxxxxxxxx...)`
+              : "  (enter two channel ids, or '-' for none)");
+            continue;
+          }
+
           if (value) { answers[key] = value; break; }
           if (attempt >= 3) {
             throw new Error(`no value given for ${label}; pass --${key}=... instead`);
@@ -860,8 +887,8 @@ async function askMeta(dir, preset, askFn) {
 
   // Carried through rather than asked for: these name the demo videos, and are
   // edited in meta.json once the clips have been watched.
-  answers.good = prior?.good ?? [];
-  answers.bad = prior?.bad ?? [];
+  answers.good = answers.good ?? prior?.good ?? [];
+  answers.bad = answers.bad ?? prior?.bad ?? [];
 
   const written = await saveMeta(dir, answers);
   console.log(`metadata written to ${written}`);
@@ -973,7 +1000,10 @@ OPTIONS
   --description=...  CSV description column     (asked for if omitted)
   --csv=false        skip writing the labelling CSV, and skip the questions
   --json-only        ask the questions and write csv/<topic>.json, then stop:
-                     no previews are downloaded and no mp4 is built
+                     no previews are downloaded and no mp4 is built. Also asks
+                     for two bad and two good example channel ids
+  --good=id1,id2     good example channels   (asked for by --json-only)
+  --bad=id1,id2      bad example channels    (asked for by --json-only)
   --csv-only         rebuild every topic's CSV from the mp4s on disk, then exit
   --upload=true      commit the run and push it to GitHub
   --repo=URL         set the git remote; only needed once
@@ -1075,7 +1105,8 @@ async function main() {
   let jsonOnly = false;
   const KNOWN = ['file', 'limit', 'out', 'parallel', 'upload', 'repo',
                  'min_score', 'csv', 'csv_only', 'help',
-                 'topic', 'instructions', 'description', 'json_only'];
+                 'topic', 'instructions', 'description', 'json_only',
+                 'good', 'bad'];
   const die = (msg) => { console.error(msg); process.exit(1); };
   const num = (raw, flag) => {
     const n = Number(raw);
@@ -1108,6 +1139,9 @@ async function main() {
     else if (flag === 'instructions') preset.instructions = value ?? argv[++i];
     else if (flag === 'description') preset.description = value ?? argv[++i];
     else if (flag === 'json_only') jsonOnly = !/^(false|0|no)$/i.test(value ?? 'true');
+    else if (flag === 'good' || flag === 'bad') {
+      preset[flag] = (value ?? argv[++i]).split(/[,\s]+/).filter(Boolean);
+    }
     else if (flag === 'csv_only' || flag === 'help') { /* handled before the loop */ }
     else {
       die(`unknown option --${m[1]}\n` +
@@ -1127,7 +1161,7 @@ async function main() {
     }
     let meta;
     try {
-      meta = await askMeta(name, preset);
+      meta = await askMeta(name, preset, undefined, { demos: true });
     } catch (err) {
       console.error(err.message);
       process.exit(1);
