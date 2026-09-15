@@ -162,22 +162,50 @@ function readList(text, filename) {
   }
 
   const rows = parseCsv(text).filter((r) => r.some((c) => c.trim()));
-  const header = rows.shift().map((h) => h.trim().toLowerCase());
-  const col = (...names) => {
+  if (!rows.length) throw new Error(`${filename}: no rows`);
+
+  // Header names are matched loosely, so channel_id, channelID, "Channel ID"
+  // and channelid are all the same column.
+  const norm = (h) => h.trim().toLowerCase().replace(/[^a-z0-9]/g, '');
+  const header = rows[0].map(norm);
+  const find = (...names) => {
     for (const n of names) {
       const i = header.indexOf(n);
       if (i !== -1) return i;
     }
     return -1;
   };
-  const idCol = col('channel_id', 'channelid', 'url', 'handle');
-  const scoreCol = col('score_0_5', 'score');
+
+  let idCol = find('channelid', 'ytchannelid', 'youtubechannelid', 'channel',
+                   'channelurl', 'channellink', 'url', 'handle', 'link');
+  let body = rows.slice(1);
+
+  // No recognisable header: find the column that actually holds channel ids,
+  // and keep the first row, which was evidently data rather than a header.
   if (idCol === -1) {
-    throw new Error(`${filename}: no channel_id, url or handle column found`);
+    const looksHeaderless = !rows[0].some((c) => norm(c) && /[a-z]/.test(norm(c)) &&
+                                                !looksLikeChannel(c.trim()));
+    const sample = (looksHeaderless ? rows : rows.slice(1)).slice(0, 50);
+    let best = -1, bestHits = 0;
+    for (let c = 0; c < rows[0].length; c++) {
+      const hits = sample.filter((r) => looksLikeChannel((r[c] || '').trim())).length;
+      if (hits > bestHits) { best = c; bestHits = hits; }
+    }
+    if (best === -1 || bestHits < Math.max(1, sample.length / 2)) {
+      throw new Error(`${filename}: no channel id column found -- name one ` +
+                      `"channel_id" (or url, or handle)`);
+    }
+    idCol = best;
+    if (looksHeaderless) body = rows;
+    console.log(`  using column ${idCol + 1}` +
+                (rows[0][idCol] ? ` ("${rows[0][idCol].trim()}")` : '') +
+                ' for channel ids');
   }
 
+  const scoreCol = find('score05', 'score', 'rating');
+
   const entries = [], skipped = [];
-  for (const r of rows) {
+  for (const r of body) {
     const raw = (r[idCol] || '').trim();
     if (!looksLikeChannel(raw)) { if (raw) skipped.push(raw); continue; }
     entries.push({ raw, score: scoreCol === -1 ? '' : (r[scoreCol] || '').trim() });
