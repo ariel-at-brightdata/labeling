@@ -850,7 +850,8 @@ async function webpCopy(scanRoot, repoUrl, doPush) {
   }
 
   for (const rel of staged) {
-    const add = await git(['add', '-f', '--', rel]);
+    // -f overrides every ignore rule, so exclude the junk explicitly.
+    const add = await git(['add', '-f', '--', rel, ':(exclude)**/.DS_Store']);
     if (add.code !== 0) throw new Error(`git add failed for ${rel}: ${add.out}`);
   }
 
