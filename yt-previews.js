@@ -689,10 +689,9 @@ const AUTH_HELP = [
 ].join('\n  ');
 
 // Push the run to GitHub. Returns a short status string for the report.
-async function upload(outDir, repoUrl, summary) {
-  console.log('\n== uploading to GitHub');
-
-  let root = await git(['rev-parse', '--show-toplevel']);
+// Make sure there is a repository, an identity and an origin to push to.
+async function gitPrepare(repoUrl) {
+  const root = await git(['rev-parse', '--show-toplevel']);
   if (root.code !== 0) {
     if (!repoUrl) {
       throw new Error('not a git repository -- pass --repo=https://github.com/<owner>/<repo>.git');
@@ -701,7 +700,6 @@ async function upload(outDir, repoUrl, summary) {
     await git(['init', '-b', 'main']);
   }
 
-  // Identity only if the repo does not already have one.
   if ((await git(['config', 'user.email'])).code !== 0) {
     await git(['config', 'user.email', 'noreply@users.noreply.github.com']);
     await git(['config', 'user.name', 'yt-previews']);
@@ -725,29 +723,16 @@ async function upload(outDir, repoUrl, summary) {
     const basic = Buffer.from(`x-access-token:${process.env.GITHUB_TOKEN}`).toString('base64');
     tokenArgs.push('-c', `http.extraheader=Authorization: Basic ${basic}`);
   }
+  return { url, tokenArgs };
+}
 
-  await git(['add', '-A']);
-  const pending = await git(['status', '--porcelain']);
-  if (!pending.out) {
-    console.log('  nothing changed since the last upload');
-    return 'nothing to push';
-  }
-
-  const built = summary.filter((r) => r.clips > 0).length;
-  const files = pending.out.split('\n').length;
-  const msg = `${outDir}: ${built} channel(s), ${files} file(s) changed`;
-  const commit = await git(['commit', '-m', msg]);
-  if (commit.code !== 0) throw new Error(`commit failed: ${commit.out}`);
-  console.log(`  committed: ${msg}`);
-
-  const branch = (await git(['rev-parse', '--abbrev-ref', 'HEAD'])).out || 'main';
-
-  // Rebase onto the remote and push, retrying the whole cycle: another run (or
-  // another machine) can land a commit in the gap between the two, which git
-  // reports as a rejected or unlockable ref.
+// Rebase onto the remote and push, retrying the whole cycle: another run (or
+// another machine) can land a commit in the gap between the two, which git
+// reports as a rejected or unlockable ref.
+async function pushWithRetry(tokenArgs, attempts = 5) {
   const RACE = /cannot lock ref|non-fast-forward|fetch first|rejected|stale info/i;
   const DENIED = /could not read Username|Authentication failed|Permission denied|403/i;
-  const attempts = 5;
+  const branch = (await git(['rev-parse', '--abbrev-ref', 'HEAD'])).out || 'main';
 
   for (let attempt = 1; ; attempt++) {
     const fetched = await git([...tokenArgs, 'fetch', 'origin', branch]);
@@ -763,7 +748,7 @@ async function upload(outDir, repoUrl, summary) {
 
     console.log(attempt === 1 ? '  pushing...' : `  pushing (attempt ${attempt})...`);
     const push = await git([...tokenArgs, 'push', '-u', 'origin', branch]);
-    if (push.code === 0) break;
+    if (push.code === 0) return;
 
     if (DENIED.test(push.out)) {
       throw new Error(`${AUTH_HELP}\n\n  git said: ${push.out.split('\n')[0]}`);
@@ -774,6 +759,149 @@ async function upload(outDir, repoUrl, summary) {
     console.log('  someone else pushed first -- rebasing and trying again');
     await sleep(1500 * attempt);
   }
+}
+
+// ---------------------------------------------------------- webp mirroring
+
+// "furniture-woodworking_channels copy" -> "furniture-woodworking_channels",
+// so a working copy of a run lands back on the topic it came from.
+const topicOfWebpDir = (webpDir) =>
+  path.basename(path.dirname(webpDir))
+      .replace(/[\s_-]*\bcopy\b[\s_-]*\d*$/i, '')
+      .trim();
+
+// Every directory named "webp" under root, at any reasonable depth.
+async function findWebpDirs(root, depth = 0, out = []) {
+  if (depth > 4) return out;
+  let entries;
+  try {
+    entries = await fs.readdir(root, { withFileTypes: true });
+  } catch {
+    return out;
+  }
+  for (const e of entries) {
+    if (!e.isDirectory() || e.name.startsWith('.') || e.name === 'node_modules') continue;
+    const full = path.join(root, e.name);
+    if (e.name === 'webp') out.push(full);
+    else await findWebpDirs(full, depth + 1, out);
+  }
+  return out;
+}
+
+// Additive copy: a file already at the destination is left alone, so re-running
+// is cheap and never overwrites what is already published.
+async function copyTree(src, dest) {
+  let copied = 0, skipped = 0;
+  await fs.mkdir(dest, { recursive: true });
+  for (const e of await fs.readdir(src, { withFileTypes: true })) {
+    if (e.name.startsWith('.')) continue;
+    const from = path.join(src, e.name), to = path.join(dest, e.name);
+    if (e.isDirectory()) {
+      const r = await copyTree(from, to);
+      copied += r.copied;
+      skipped += r.skipped;
+    } else if (e.isFile()) {
+      try {
+        await fs.access(to);
+        skipped++;
+      } catch {
+        await fs.copyFile(from, to);
+        copied++;
+      }
+    }
+  }
+  return { copied, skipped };
+}
+
+// Mirror every <something>/webp under scanRoot onto <topic>/webp in the repo
+// and push it. webp is in .gitignore so ordinary runs stay mp4-only; these are
+// staged with -f, which overrides the ignore for these paths alone.
+async function webpCopy(scanRoot, repoUrl, doPush) {
+  console.log('\n== mirroring webp folders');
+  const { tokenArgs, url } = await gitPrepare(repoUrl);
+  const top = (await git(['rev-parse', '--show-toplevel'])).out;
+  if (!top) throw new Error('not a git repository');
+
+  const root = path.resolve(scanRoot);
+  console.log(`  scanning ${root}`);
+  const dirs = await findWebpDirs(root);
+  if (!dirs.length) throw new Error(`no folders named "webp" under ${root}`);
+
+  const staged = [];
+  let totalCopied = 0, totalSkipped = 0;
+  for (const src of dirs.sort()) {
+    const topic = topicOfWebpDir(src);
+    if (!topic) {
+      console.log(`  ! ${src}: cannot tell which topic this belongs to, skipping`);
+      continue;
+    }
+    const dest = path.join(top, topic, 'webp');
+    if (path.resolve(src) === path.resolve(dest)) {
+      console.log(`  ${topic}/webp is already in place`);
+    } else {
+      const { copied, skipped } = await copyTree(src, dest);
+      totalCopied += copied;
+      totalSkipped += skipped;
+      const shown = path.relative(root, src) || src;
+      console.log(`  ${shown} -> ${topic}/webp  (${copied} copied` +
+                  (skipped ? `, ${skipped} already there` : '') + ')');
+    }
+    staged.push(path.relative(top, dest));
+  }
+
+  for (const rel of staged) {
+    const add = await git(['add', '-f', '--', rel]);
+    if (add.code !== 0) throw new Error(`git add failed for ${rel}: ${add.out}`);
+  }
+
+  // Only what was staged under these paths: anything else the user had staged
+  // stays out of this commit.
+  const cached = await git(['diff', '--cached', '--name-only', '--', ...staged]);
+  if (!cached.out) {
+    console.log('  nothing new to publish');
+    return 'nothing to push';
+  }
+  const files = cached.out.split('\n').length;
+  console.log(`  ${totalCopied} file(s) copied, ${totalSkipped} already present, ` +
+              `${files} staged for commit`);
+
+  if (!doPush) {
+    console.log('  --upload=false: staged but not committed');
+    return 'staged, not pushed';
+  }
+
+  const msg = `webp: mirror ${staged.length} folder(s), ${files} file(s)`;
+  const commit = await git(['commit', '-m', msg, '--', ...staged]);
+  if (commit.code !== 0) throw new Error(`commit failed: ${commit.out}`);
+  console.log(`  committed: ${msg}`);
+
+  await pushWithRetry(tokenArgs);
+  const webUrl = url.replace(/^git@github\.com:/, 'https://github.com/').replace(/\.git$/, '');
+  console.log(`  pushed to ${webUrl}`);
+  return `pushed ${files} webp file(s) to ${webUrl}`;
+}
+
+async function upload(outDir, repoUrl, summary) {
+  console.log('\n== uploading to GitHub');
+
+  const { url, tokenArgs } = await gitPrepare(repoUrl);
+
+  await git(['add', '-A']);
+  const pending = await git(['status', '--porcelain']);
+  if (!pending.out) {
+    console.log('  nothing changed since the last upload');
+    return 'nothing to push';
+  }
+
+  const built = summary.filter((r) => r.clips > 0).length;
+  const files = pending.out.split('\n').length;
+  const msg = `${outDir}: ${built} channel(s), ${files} file(s) changed`;
+  const commit = await git(['commit', '-m', msg]);
+  if (commit.code !== 0) throw new Error(`commit failed: ${commit.out}`);
+  console.log(`  committed: ${msg}`);
+
+  await pushWithRetry(tokenArgs);
+
   const webUrl = url.replace(/^git@github\.com:/, 'https://github.com/').replace(/\.git$/, '');
   console.log(`  pushed to ${webUrl}`);
   return `pushed to ${webUrl} (${msg})`;
@@ -1049,6 +1177,11 @@ OPTIONS
                      (asked for if omitted)
   --description=...  CSV description column     (asked for if omitted)
   --csv=false        skip writing the labelling CSV, and skip the questions
+  --webp_copy=PATH   mirror every <something>/webp under PATH onto <topic>/webp
+                     in the repo and push it, then stop. "true" scans the
+                     working directory; a "<topic> copy" folder maps back to
+                     "<topic>". Pair with --upload=false to copy without
+                     committing
   --json-only        ask the questions and write csv/<topic>.json, then stop:
                      no previews are downloaded and no mp4 is built. Also asks
                      for two bad and two good example channel ids
@@ -1110,6 +1243,9 @@ EXAMPLES
   Set up a topic's labelling fields and push them, downloading nothing:
     node yt-previews.js --file=pottery_channels --json-only --upload=true
 
+  Publish the source clips from working copies back onto their topics:
+    node yt-previews.js --webp_copy="/Users/me/labeling"
+
   Rebuild all the labelling CSVs without re-running anything:
     node yt-previews.js --csv-only
 
@@ -1146,6 +1282,7 @@ async function main() {
   let outDir = null;
   let parallel = 1;
   let doUpload = false;
+  let uploadGiven = false;      // --upload was passed explicitly
   let repoUrl = null;
   const scoreByRaw = new Map();   // input line -> score, for mp4 filenames
   let minScore = MIN_SCORE;
@@ -1153,10 +1290,11 @@ async function main() {
   let listText = null;            // contents of the resolved list, local or remote
   const preset = {};              // labelling fields given on the command line
   let jsonOnly = false;
+  let webpCopyFrom = null;
   const KNOWN = ['file', 'limit', 'out', 'parallel', 'upload', 'repo',
                  'min_score', 'csv', 'csv_only', 'help',
                  'topic', 'instructions', 'description', 'json_only',
-                 'good', 'bad'];
+                 'good', 'bad', 'webp_copy', 'from'];
   const die = (msg) => { console.error(msg); process.exit(1); };
   const num = (raw, flag) => {
     const n = Number(raw);
@@ -1181,7 +1319,10 @@ async function main() {
     else if (flag === 'limit') limit = num(value ?? argv[++i], 'limit');
     else if (flag === 'out') outDir = value ?? argv[++i];
     else if (flag === 'parallel') parallel = Math.max(1, num(value ?? argv[++i], 'parallel'));
-    else if (flag === 'upload') doUpload = value === null ? true : !/^(false|0|no)$/i.test(value);
+    else if (flag === 'upload') {
+      doUpload = value === null ? true : !/^(false|0|no)$/i.test(value);
+      uploadGiven = true;
+    }
     else if (flag === 'repo') repoUrl = value ?? argv[++i];
     else if (flag === 'min_score') minScore = num(value ?? argv[++i], 'min_score');
     else if (flag === 'csv') wantCsv = !/^(false|0|no)$/i.test(value ?? 'true');
@@ -1189,6 +1330,13 @@ async function main() {
     else if (flag === 'instructions') preset.instructions = value ?? argv[++i];
     else if (flag === 'description') preset.description = value ?? argv[++i];
     else if (flag === 'json_only') jsonOnly = !/^(false|0|no)$/i.test(value ?? 'true');
+    // --webp_copy=true scans the working directory; --webp_copy=PATH scans PATH.
+    else if (flag === 'webp_copy') {
+      const v = value ?? 'true';
+      webpCopyFrom = /^(false|0|no)$/i.test(v) ? null
+                   : (/^(true|1|yes)$/i.test(v) ? '.' : v);
+    }
+    else if (flag === 'from') webpCopyFrom = value ?? argv[++i];
     else if (flag === 'good' || flag === 'bad') {
       preset[flag] = (value ?? argv[++i]).split(/[,\s]+/).filter(Boolean);
     }
@@ -1198,6 +1346,17 @@ async function main() {
           `valid options: ${KNOWN.map((k) => '--' + k).join(', ')}\n` +
           `run with --help for usage`);
     }
+  }
+
+  if (webpCopyFrom) {
+    try {
+      const push = uploadGiven ? doUpload : true;
+      console.log(await webpCopy(webpCopyFrom, repoUrl, push));
+    } catch (err) {
+      console.error('  ! ' + err.message);
+      process.exitCode = 1;
+    }
+    return;
   }
 
   if (jsonOnly) {

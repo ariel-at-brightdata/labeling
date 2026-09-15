@@ -1,4 +1,4 @@
 .DS_Store
 
-# source clips stay local: only the mp4s are published
-*/webp/
+# source clips stay local unless --webp_copy publishes them explicitly
+**/webp/
