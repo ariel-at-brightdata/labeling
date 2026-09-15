@@ -1,0 +1,50 @@
+[
+  {
+    "videoId": "95goEKlmSsI",
+    "title": "BrAun Regie CEV 520",
+    "webp": "https://i.ytimg.com/an_webp/95goEKlmSsI/mqdefault_6s.webp?du=3000&sqp=CNKao9UG&rs=AOn4CLC0K-7i0kVcnUaJEHBso0OVmbGDPg",
+    "position": 1,
+    "file": "01_p01_95goEKlmSsI_BrAun_Regie_CEV_520.webp",
+    "bytes": 138938
+  },
+  {
+    "videoId": "v8k4xzKDckQ",
+    "title": "Тест зензюбеля Clifton 3110",
+    "webp": "https://i.ytimg.com/an_webp/v8k4xzKDckQ/mqdefault_6s.webp?du=3000&sqp=CKCPo9UG&rs=AOn4CLAq6ElyHPmMelP6_bZq40YK2tbLiw",
+    "position": 5,
+    "file": "02_p05_v8k4xzKDckQ_Clifton_3110.webp",
+    "bytes": 127180
+  },
+  {
+    "videoId": "oiHeaM6sgIw",
+    "title": "(Фруктовница 2ч)",
+    "webp": "https://i.ytimg.com/an_webp/oiHeaM6sgIw/mqdefault_6s.webp?du=3000&sqp=CIzAo9UG&rs=AOn4CLDjmjnnDyQzpU4H-dZHx_vnN5Gjbw",
+    "position": 11,
+    "file": "03_p11_oiHeaM6sgIw_2.webp",
+    "bytes": 110566
+  },
+  {
+    "videoId": "LnkAeW_h_uQ",
+    "title": "Столярный шаблон для шпонки.",
+    "webp": "https://i.ytimg.com/an_webp/LnkAeW_h_uQ/mqdefault_6s.webp?du=3000&sqp=CPT9otUG&rs=AOn4CLAcQuXfvAmqU3t_ZMrMxwzSWti5yw",
+    "position": 13,
+    "file": "04_p13_LnkAeW_h_uQ_video.webp",
+    "bytes": 149108
+  },
+  {
+    "videoId": "-o2qg0_yxlY",
+    "title": "Деревянная струбцина. Wooden clamp.",
+    "webp": "https://i.ytimg.com/an_webp/-o2qg0_yxlY/mqdefault_6s.webp?du=3000&sqp=CMiTo9UG&rs=AOn4CLDFTET5U0qtjVn3fwNasYY20W1nVg",
+    "position": 17,
+    "file": "05_p17_-o2qg0_yxlY_Wooden_clamp.webp",
+    "bytes": 131060
+  },
+  {
+    "videoId": "J5Z991a_xbY",
+    "title": "Chaplin 1207 plane. Кратко.",
+    "webp": "https://i.ytimg.com/an_webp/J5Z991a_xbY/mqdefault_6s.webp?du=3000&sqp=CI6qo9UG&rs=AOn4CLAPt-pnsK5GzHcOEFe0vo06EFKJ2A",
+    "position": 23,
+    "file": "06_p23_J5Z991a_xbY_Chaplin_1207_plane.webp",
+    "bytes": 143368
+  }
+]
