@@ -1,0 +1,50 @@
+[
+  {
+    "videoId": "kdfRFxpzeKU",
+    "title": "How to Match Battery Capacity to Inverter Size (Ah, kWh and C-Rate Math)",
+    "webp": "https://i.ytimg.com/an_webp/kdfRFxpzeKU/mqdefault_6s.webp?du=3000&sqp=CMSeo9UG&rs=AOn4CLBNSxkBIRQKz81rdZFoJxG23oGx9A",
+    "position": 2,
+    "file": "01_p02_kdfRFxpzeKU_How_to_Match_Battery_Capacity_to_Inverter_Size_Ah_.webp",
+    "bytes": 151024
+  },
+  {
+    "videoId": "idDAb0RRIv8",
+    "title": "Why 12V Batteries Cannot Run Every Inverter | Current Limit Breakdown Explained",
+    "webp": "https://i.ytimg.com/an_webp/idDAb0RRIv8/mqdefault_6s.webp?du=3000&sqp=CLWzo9UG&rs=AOn4CLAk5apnA84R224VZST8s9-HwIGiWQ",
+    "position": 7,
+    "file": "02_p07_idDAb0RRIv8_Why_12V_Batteries_Cannot_Run_Every_Inverter_Curren.webp",
+    "bytes": 133052
+  },
+  {
+    "videoId": "uaJhhkqwUzU",
+    "title": "Starlink Power Test: AC Adapter vs DC Conversion (Efficiency Comparison)",
+    "webp": "https://i.ytimg.com/an_webp/uaJhhkqwUzU/mqdefault_6s.webp?du=3000&sqp=CJTBo9UG&rs=AOn4CLAlxSfPnFujRsM7B_ICFsnaRWPOAw",
+    "position": 17,
+    "file": "03_p17_uaJhhkqwUzU_Starlink_Power_Test_AC_Adapter_vs_DC_Conversion_Ef.webp",
+    "bytes": 133042
+  },
+  {
+    "videoId": "XVR1cosl8VM",
+    "title": "How Many Solar Panels for Starlink? (Daily kWh and Battery Runtime Math)",
+    "webp": "https://i.ytimg.com/an_webp/XVR1cosl8VM/mqdefault_6s.webp?du=3000&sqp=CLTao9UG&rs=AOn4CLDoPGd5zXX3zF3UEHSlAghQa3vmUw",
+    "position": 18,
+    "file": "04_p18_XVR1cosl8VM_How_Many_Solar_Panels_for_Starlink_Daily_kWh_and_B.webp",
+    "bytes": 146096
+  },
+  {
+    "videoId": "mieQCawAYUA",
+    "title": "Compressor Surge Test for Cold Room Solar Systems | Starting Current Explained",
+    "webp": "https://i.ytimg.com/an_webp/mieQCawAYUA/mqdefault_6s.webp?du=3000&sqp=CMDNo9UG&rs=AOn4CLCes4rdvNOyZEp_kwM96vHYdbU2Ow",
+    "position": 27,
+    "file": "05_p27_mieQCawAYUA_Compressor_Surge_Test_for_Cold_Room_Solar_Systems_.webp",
+    "bytes": 151134
+  },
+  {
+    "videoId": "xP4B4CZ0ZzU",
+    "title": "How Many Solar Panels for a Cold Room? Compressor Duty Cycle Explained",
+    "webp": "https://i.ytimg.com/an_webp/xP4B4CZ0ZzU/mqdefault_6s.webp?du=3000&sqp=CPy8o9UG&rs=AOn4CLCxpBiAmjk5cPCJ8YJPOzIR2eSAGg",
+    "position": 28,
+    "file": "06_p28_xP4B4CZ0ZzU_How_Many_Solar_Panels_for_a_Cold_Room_Compressor_D.webp",
+    "bytes": 112708
+  }
+]
